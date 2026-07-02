@@ -75,6 +75,8 @@ export default function Home() {
   // Active Partner logo sync trigger
   const [partnerLogoUrl, setPartnerLogoUrl] = useState("emblem_doctor");
   const [partnerLogoColor, setPartnerLogoColor] = useState("bg-teal-500");
+  const [partnerName, setPartnerName] = useState("Dr. Carlos Jensen");
+  const [partnerEmail, setPartnerEmail] = useState("carlos.jensen@consultorio.com");
 
   // Check session storage on mount
   useEffect(() => {
@@ -99,6 +101,8 @@ export default function Home() {
     if (partner) {
       setPartnerLogoUrl(partner.logoUrl || "emblem_doctor");
       setPartnerLogoColor(partner.logoColor || "bg-teal-500");
+      setPartnerName(partner.name);
+      setPartnerEmail(partner.email);
     }
   }, [activeTab, role]);
 
@@ -482,13 +486,13 @@ export default function Home() {
                 <div className="flex flex-col min-w-0">
                   <span className="text-[11px] font-bold text-white leading-none truncate">
                     {role === "superadmin" && "ZUMA Admin"}
-                    {role === "partner" && nombre}
+                    {role === "partner" && partnerName}
                     {role === "patient_guest" && "Paciente Invitado"}
                     {role === "patient_registered" && `${patientSession?.nombre} ${patientSession?.apellido}`}
                   </span>
                   <span className="text-[9px] font-medium text-slate-500 mt-1 truncate">
                     {role === "superadmin" && "Plataforma SaaS"}
-                    {role === "partner" && email}
+                    {role === "partner" && partnerEmail}
                     {role === "patient_guest" && "Sin identificar"}
                     {role === "patient_registered" && patientSession?.email}
                   </span>
