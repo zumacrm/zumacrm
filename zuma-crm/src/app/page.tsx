@@ -22,7 +22,8 @@ import {
   Heart,
   Activity,
   Building2,
-  Stethoscope
+  Stethoscope,
+  MapPin
 } from "lucide-react";
 import InicioView from "@/components/views/InicioView";
 import PerfilPublicoView from "@/components/views/PerfilPublicoView";
@@ -33,6 +34,7 @@ import ReservarTurnoView from "@/components/views/ReservarTurnoView";
 import MisTurnosView from "@/components/views/MisTurnosView";
 import PacienteDashboardView from "@/components/views/PacienteDashboardView";
 import PacientePerfilView from "@/components/views/PacientePerfilView";
+import PacienteUbicacionesView from "@/components/views/PacienteUbicacionesView";
 import SaaSConfigView from "@/components/views/SaaSConfigView";
 import { mockDB } from "@/lib/mockData";
 
@@ -71,6 +73,8 @@ export default function Home() {
 
   // Patient session state
   const [patientSession, setPatientSession] = useState<PatientSession | null>(null);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
+  const [selectedLocationName, setSelectedLocationName] = useState<string | null>(null);
 
   // Active Partner logo sync trigger
   const [partnerLogoUrl, setPartnerLogoUrl] = useState("emblem_doctor");
@@ -155,7 +159,14 @@ export default function Home() {
   };
 
   const handleSelectPartnerFromDashboard = (partnerId: string) => {
-    // Jump straight to the Reservation page
+    setSelectedPartnerId(partnerId);
+    setSelectedLocationName(null);
+    setActiveTab("reservar");
+  };
+
+  const handleSelectLocationFromLocationsList = (partnerId: string, locationName: string) => {
+    setSelectedPartnerId(partnerId);
+    setSelectedLocationName(locationName);
     setActiveTab("reservar");
   };
 
@@ -212,6 +223,7 @@ export default function Home() {
       case "patient_registered":
         return [
           { id: "dashboard", label: "Dashboard", icon: HomeIcon, desc: "Directorio de Socios" },
+          { id: "ubicaciones", label: "Ubicaciones", icon: MapPin, desc: "Sedes y locales asociados" },
           { id: "historial", label: "Mis Reservas", icon: FileText, desc: "Gestionar reservas y señas" },
           { id: "paciente_perfil", label: "Profile", icon: UserIcon, desc: "Mi Información Personal" }
         ];
@@ -238,6 +250,8 @@ export default function Home() {
         return <FacturacionView role={role} />;
       case "dashboard":
         return <PacienteDashboardView onSelectPartner={handleSelectPartnerFromDashboard} />;
+      case "ubicaciones":
+        return <PacienteUbicacionesView onSelectLocation={handleSelectLocationFromLocationsList} />;
       case "paciente_perfil":
         return <PacientePerfilView currentPatient={patientSession} onUpdatePatient={handleUpdatePatient} />;
       case "reservar":
@@ -246,6 +260,8 @@ export default function Home() {
             currentPatient={patientSession} 
             onRegisterPatient={handleRegisterPatient}
             onViewHistory={() => setActiveTab("historial")}
+            partnerId={selectedPartnerId}
+            initialLocationName={selectedLocationName}
           />
         );
       case "historial":
@@ -537,6 +553,7 @@ export default function Home() {
                 {activeTab === "facturacion" && (role === "superadmin" ? "Suscripciones Globales" : "Mi Facturación")}
                 {activeTab === "dashboard" && "Dashboard Paciente"}
                 {activeTab === "reservar" && "Reserva Online"}
+                {activeTab === "ubicaciones" && "Ubicaciones"}
                 {activeTab === "historial" && "Mis Reservas"}
                 {activeTab === "paciente_perfil" && "Mi Perfil"}
               </span>

@@ -32,16 +32,20 @@ interface ReservarTurnoViewProps {
   } | null;
   onRegisterPatient: (patient: any) => void;
   onViewHistory: () => void;
+  partnerId?: string | null;
+  initialLocationName?: string | null;
 }
 
 export default function ReservarTurnoView({ 
   currentPatient, 
   onRegisterPatient,
-  onViewHistory 
+  onViewHistory,
+  partnerId = null,
+  initialLocationName = null
 }: ReservarTurnoViewProps) {
   const [step, setStep] = useState(1);
   const [selectedConsultorio, setSelectedConsultorio] = useState("");
-  const [selectedEstudio, setSelectedEstudio] = useState("Consulta general");
+  const [selectedEstudio, setSelectedEstudio] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(addDays(new Date(), 1));
   const [selectedHora, setSelectedHora] = useState("");
   
@@ -57,30 +61,72 @@ export default function ReservarTurnoView({
   
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Clinic configurations matching Dr. Jensen
-  const clinics = [
-    {
-      name: "Sanatorio Central Banda",
-      days: "Lunes y Miércoles",
-      allowedDays: [1, 3], // Lunes, Miércoles
-      estudios: ["Consulta general", "Electrocardiograma", "Ergometría"],
-      address: "España 150, La Banda"
-    },
-    {
-      name: "Clínica Del Pilar",
-      days: "Martes y Jueves",
-      allowedDays: [2, 4], // Martes, Jueves
-      estudios: ["Consulta general", "Ecocardiograma"],
-      address: "Pellegrini 350, Santiago"
-    },
-    {
-      name: "Centro Médico Cannon",
-      days: "Viernes",
-      allowedDays: [5], // Viernes
-      estudios: ["Consulta general", "Electrocardiograma", "Ergometría", "Ecocardiograma"],
-      address: "Av. Cannon 240, Santiago"
+  // Retrieve active partner details
+  const activePartner = mockDB.getPartners().find(p => p.id === partnerId) || 
+                        mockDB.getPartners().find(p => p.id === "dr-carlos-jensen") ||
+                        mockDB.getPartners()[0];
+
+  const clinics = activePartner.id === "dr-carlos-jensen"
+    ? [
+        {
+          name: "Sanatorio Central Banda",
+          days: "Lunes y Miércoles",
+          allowedDays: [1, 3],
+          estudios: ["Consulta general", "Electrocardiograma", "Ergometría"],
+          address: "España 150, La Banda"
+        },
+        {
+          name: "Clínica Del Pilar",
+          days: "Martes y Jueves",
+          allowedDays: [2, 4],
+          estudios: ["Consulta general", "Ecocardiograma"],
+          address: "Pellegrini 350, Santiago"
+        },
+        {
+          name: "Centro Médico Cannon",
+          days: "Viernes",
+          allowedDays: [5],
+          estudios: ["Consulta general", "Electrocardiograma", "Ergometría", "Ecocardiograma"],
+          address: "Av. Cannon 240, Santiago"
+        }
+      ]
+    : (activePartner?.locations && activePartner.locations.length > 0)
+      ? activePartner.locations.map(loc => ({
+          name: loc.name,
+          days: "Lunes a Sábado",
+          allowedDays: [1, 2, 3, 4, 5, 6],
+          estudios: activePartner.specialties && activePartner.specialties.length > 0 ? activePartner.specialties : ["Servicio General"],
+          address: loc.address
+        }))
+      : [
+          {
+            name: activePartner?.name || "Sede Central",
+            days: "Lunes a Sábado",
+            allowedDays: [1, 2, 3, 4, 5, 6],
+            estudios: activePartner?.specialties && activePartner.specialties.length > 0 ? activePartner.specialties : ["Servicio General"],
+            address: activePartner?.address || ""
+          }
+        ];
+
+  // Pre-select consultorio and jump to step 2 if preselected location is passed
+  useEffect(() => {
+    if (initialLocationName) {
+      setSelectedConsultorio(initialLocationName);
+      setStep(2);
+    } else if (clinics.length > 0) {
+      setSelectedConsultorio(clinics[0].name);
     }
-  ];
+  }, [initialLocationName, partnerId]);
+
+  // Set default selectedEstudio when consultorio or partner changes
+  useEffect(() => {
+    const clinic = clinics.find(c => c.name === selectedConsultorio) || clinics[0];
+    if (clinic && clinic.estudios.length > 0) {
+      setSelectedEstudio(clinic.estudios[0]);
+    } else {
+      setSelectedEstudio("Servicio General");
+    }
+  }, [selectedConsultorio, partnerId]);
 
   // Load patient data if they are already logged in
   useEffect(() => {
@@ -200,6 +246,8 @@ export default function ReservarTurnoView({
 
     // Add appointment to database
     mockDB.addTurno({
+      partnerId: activePartner.id,
+      partnerName: activePartner.name,
       paciente: {
         dni: regForm.dni,
         nombre: regForm.nombre,
@@ -486,7 +534,7 @@ export default function ReservarTurnoView({
 
             {/* Registration inputs (only editable/visible if guest or new patient) */}
             <div className="flex flex-col gap-3">
-              <span className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Identificación del Paciente</span>
+              <span className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Identificación del Cliente / Paciente</span>
               
               {currentPatient ? (
                 // Logged patient card

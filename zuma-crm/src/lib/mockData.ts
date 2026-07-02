@@ -37,6 +37,8 @@ export interface Partner {
 
 export interface MockTurno {
   id: string;
+  partnerId?: string;
+  partnerName?: string;
   paciente: {
     dni: string;
     nombre: string;

@@ -126,7 +126,7 @@ export default function MisTurnosView({ currentPatient, onGoToBooking }: MisTurn
       {myTurnos.length === 0 ? (
         <div className="bg-white border border-slate-200 p-12 text-center rounded-2xl flex flex-col items-center gap-3">
           <Info className="w-10 h-10 text-slate-300" />
-          <p className="text-xs text-slate-400">No tienes turnos agendados con el Dr. Carlos Jensen en este momento.</p>
+          <p className="text-xs text-slate-400">No tienes reservas solicitadas en este momento.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -151,6 +151,11 @@ export default function MisTurnosView({ currentPatient, onGoToBooking }: MisTurn
                     <h4 className="font-semibold text-slate-800 text-xs mt-1">
                       {t.tipo_estudio}
                     </h4>
+                    {t.partnerName && (
+                      <p className="text-[9px] font-bold text-indigo-600 mt-0.5 uppercase tracking-wide">
+                        {t.partnerName}
+                      </p>
+                    )}
                     <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
                       <Building2 className="w-3.5 h-3.5 text-slate-400" />
                       {t.consultorio}
