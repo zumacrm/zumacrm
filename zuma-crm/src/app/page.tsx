@@ -212,8 +212,8 @@ export default function Home() {
       case "patient_registered":
         return [
           { id: "dashboard", label: "Dashboard", icon: HomeIcon, desc: "Directorio de Socios" },
-          { id: "reservar", label: "Reservar Turno", icon: Calendar, desc: "Solicitar turno médico" },
-          { id: "historial", label: "Mis Turnos", icon: FileText, desc: "Gestionar reservas y señas" },
+          { id: "reservar", label: "Reservar", icon: Calendar, desc: "Solicitar turno o servicio" },
+          { id: "historial", label: "Mis Reservas", icon: FileText, desc: "Gestionar reservas y señas" },
           { id: "paciente_perfil", label: "Profile", icon: UserIcon, desc: "Mi Información Personal" }
         ];
       default:
@@ -537,8 +537,8 @@ export default function Home() {
                 {activeTab === "config" && "Configuración"}
                 {activeTab === "facturacion" && (role === "superadmin" ? "Suscripciones Globales" : "Mi Facturación")}
                 {activeTab === "dashboard" && "Dashboard Paciente"}
-                {activeTab === "reservar" && "Reserva de Turnos"}
-                {activeTab === "historial" && "Mis Turnos"}
+                {activeTab === "reservar" && "Reserva Online"}
+                {activeTab === "historial" && "Mis Reservas"}
                 {activeTab === "paciente_perfil" && "Mi Perfil"}
               </span>
             </div>

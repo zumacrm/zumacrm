@@ -89,7 +89,7 @@ const INITIAL_PARTNERS: Partner[] = [
   {
     id: "dr-carlos-jensen",
     name: "Dr. Carlos Jensen",
-    category: "Médico Cardiólogo",
+    category: "Profesionales",
     status: "active",
     cuit: "20-35123456-9",
     email: "carlos.jensen@consultorio.com",
@@ -139,7 +139,7 @@ const INITIAL_PARTNERS: Partner[] = [
   {
     id: "laboratorios-biolab",
     name: "Laboratorios Biolab",
-    category: "Análisis Clínicos",
+    category: "Laboratorios",
     status: "active",
     cuit: "30-99887766-3",
     email: "bioquimica@biolab.com",
@@ -169,7 +169,7 @@ const INITIAL_PARTNERS: Partner[] = [
   {
     id: "potenza-gym",
     name: "Potenza Gym",
-    category: "Gimnasio y Fitness",
+    category: "Gimnasios",
     status: "active",
     cuit: "20-33221144-8",
     email: "contacto@potenzagym.com",
@@ -199,7 +199,7 @@ const INITIAL_PARTNERS: Partner[] = [
   {
     id: "patagonia-sde",
     name: "Patagonia Refugio SDE",
-    category: "Gastronomía",
+    category: "Restaurantes",
     status: "active",
     cuit: "23-28492049-9",
     email: "santiago@refugiopatagonia.com.ar",
@@ -229,7 +229,7 @@ const INITIAL_PARTNERS: Partner[] = [
   {
     id: "bar-lugones",
     name: "Lugones Bar & Resto",
-    category: "Gastronomía",
+    category: "Restaurantes",
     status: "active",
     cuit: "20-44930291-7",
     email: "contacto@barlugones.com.ar",
@@ -259,7 +259,7 @@ const INITIAL_PARTNERS: Partner[] = [
   {
     id: "instituto-dao",
     name: "Instituto DAO",
-    category: "Educación y Formación",
+    category: "Cursos",
     status: "active",
     cuit: "30-28193849-5",
     email: "formacion@institutodao.com",
@@ -289,7 +289,7 @@ const INITIAL_PARTNERS: Partner[] = [
   {
     id: "cabanas-tafi",
     name: "Cabañas Sendas del Tafí",
-    category: "Hotelería y Turismo",
+    category: "Agencias de viaje",
     status: "active",
     cuit: "20-22119944-3",
     email: "reservas@sendasdeltafi.com",
@@ -319,7 +319,7 @@ const INITIAL_PARTNERS: Partner[] = [
   {
     id: "flores-odontologia",
     name: "Flores Odontología Integral",
-    category: "Salud y Odontología",
+    category: "Profesionales",
     status: "active",
     cuit: "20-28192839-4",
     email: "odontoflores@gmail.com",
@@ -552,7 +552,7 @@ export const mockDB = {
   // Partners list
   getPartners: (): Partner[] => {
     const list = getDB("zuma_partners", INITIAL_PARTNERS);
-    if (list.some((p: any) => p.id === "megagimnasio-banda") || !list.some((p: any) => p.id === "sanatorio-central-banda")) {
+    if (list.some((p: any) => p.id === "megagimnasio-banda") || !list.some((p: any) => p.category === "Profesionales")) {
       saveDB("zuma_partners", INITIAL_PARTNERS);
       return INITIAL_PARTNERS;
     }

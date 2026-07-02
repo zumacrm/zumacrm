@@ -30,14 +30,13 @@ export default function PacienteDashboardView({ onSelectPartner }: PacienteDashb
 
   const categories = [
     "Todos",
-    "Cardiología",
     "Clínicas",
     "Laboratorios",
-    "Gimnasio y Fitness",
-    "Gastronomía",
-    "Educación",
-    "Hotelería y Turismo",
-    "Salud y Odontología"
+    "Gimnasios",
+    "Restaurantes",
+    "Agencias de viaje",
+    "Profesionales",
+    "Cursos"
   ];
 
   // Helper to render beautiful category logos
@@ -73,14 +72,13 @@ export default function PacienteDashboardView({ onSelectPartner }: PacienteDashb
     
     // Category mapping filters
     const catLower = p.category.toLowerCase();
-    if (selectedCategory === "Cardiología" && (catLower.includes("cardiólogo") || catLower.includes("cardiología"))) return matchesSearch;
-    if (selectedCategory === "Clínicas" && (catLower.includes("clínica") || catLower.includes("sanatorio"))) return matchesSearch;
-    if (selectedCategory === "Laboratorios" && catLower.includes("análisis")) return matchesSearch;
-    if (selectedCategory === "Gimnasio y Fitness" && catLower.includes("gimnasio")) return matchesSearch;
-    if (selectedCategory === "Gastronomía" && (catLower.includes("gastronomía") || catLower.includes("cervecería") || catLower.includes("bar"))) return matchesSearch;
-    if (selectedCategory === "Educación" && (catLower.includes("educación") || catLower.includes("formación") || catLower.includes("instituto"))) return matchesSearch;
-    if (selectedCategory === "Hotelería y Turismo" && (catLower.includes("hotelería") || catLower.includes("turismo") || catLower.includes("cabaña"))) return matchesSearch;
-    if (selectedCategory === "Salud y Odontología" && (catLower.includes("odontología") || catLower.includes("salud") || catLower.includes("dentista"))) return matchesSearch;
+    if (selectedCategory === "Clínicas" && (catLower.includes("clínica") || catLower.includes("sanatorio") || catLower.includes("clinica"))) return matchesSearch;
+    if (selectedCategory === "Laboratorios" && (catLower.includes("laboratorio") || catLower.includes("análisis") || catLower.includes("analisis"))) return matchesSearch;
+    if (selectedCategory === "Gimnasios" && (catLower.includes("gimnasio") || catLower.includes("fitness"))) return matchesSearch;
+    if (selectedCategory === "Restaurantes" && (catLower.includes("restaurante") || catLower.includes("gastronomía") || catLower.includes("bar") || catLower.includes("cervecería"))) return matchesSearch;
+    if (selectedCategory === "Agencias de viaje" && (catLower.includes("viaje") || catLower.includes("turismo") || catLower.includes("cabaña") || catLower.includes("hotelería"))) return matchesSearch;
+    if (selectedCategory === "Profesionales" && (catLower.includes("profesional") || catLower.includes("cardiólogo") || catLower.includes("odontólogo") || catLower.includes("médico") || catLower.includes("salud") || catLower.includes("dentista"))) return matchesSearch;
+    if (selectedCategory === "Cursos" && (catLower.includes("curso") || catLower.includes("educación") || catLower.includes("formación") || catLower.includes("capacitación"))) return matchesSearch;
     
     return false;
   });
@@ -190,14 +188,14 @@ export default function PacienteDashboardView({ onSelectPartner }: PacienteDashb
               <div className="flex justify-between items-center">
                 <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                  {p.locations?.length || 1} consultorios
+                  {p.locations && p.locations.length > 0 ? (p.locations.length === 1 ? "1 ubicación" : `${p.locations.length} ubicaciones`) : "1 ubicación"}
                 </span>
 
                 <button
                   onClick={() => onSelectPartner(p.id)}
                   className="bg-primary hover:bg-teal-600 text-white font-bold text-[10px] py-1.5 px-3 rounded-lg shadow-sm flex items-center gap-1 cursor-pointer transition-all"
                 >
-                  Reservar Turno
+                  Reservar
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>

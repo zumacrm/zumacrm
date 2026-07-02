@@ -233,8 +233,8 @@ export default function ReservarTurnoView({
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6 animate-slide-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-800">Reservar Turno Médico</h1>
-        <p className="text-xs text-slate-400">Portal Público de Reserva de Turnos Online &bull; Dr. Carlos Jensen</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-800">Reserva Online</h1>
+        <p className="text-xs text-slate-400">Portal Público de Reserva Online &bull; Servicios y Agendas</p>
       </div>
 
       {/* Stepper indicators */}
@@ -600,7 +600,7 @@ export default function ReservarTurnoView({
                 type="submit"
                 className="flex-1 bg-primary hover:bg-teal-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-all cursor-pointer text-center"
               >
-                {currentPatient ? "Reservar Turno" : "Registrarse y Reservar"}
+                {currentPatient ? "Confirmar Reserva" : "Registrarse y Reservar"}
               </button>
             </div>
           </form>
