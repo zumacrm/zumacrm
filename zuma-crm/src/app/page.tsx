@@ -17,11 +17,10 @@ import {
   Search,
   Layers,
   Shield,
-  TrendingUp,
-  User,
   Calendar,
   FileText,
-  Users
+  Lock,
+  ArrowRight
 } from "lucide-react";
 import InicioView from "@/components/views/InicioView";
 import PerfilPublicoView from "@/components/views/PerfilPublicoView";
@@ -49,24 +48,48 @@ export default function Home() {
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [searchText, setSearchText] = useState("");
   
+  // Lock screen authorization states
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [accessCode, setAccessCode] = useState("");
+  const [loginError, setLoginError] = useState("");
+
   // Patient session state
   const [patientSession, setPatientSession] = useState<PatientSession | null>(null);
 
-  // Automatically force collapse on screens under 768px
+  // Check session storage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("zuma_unlocked");
+      if (saved === "true") {
+        setIsUnlocked(true);
+        // Recover last role from storage if set
+        const savedRole = sessionStorage.getItem("zuma_role") as Role;
+        if (savedRole) {
+          setRole(savedRole);
+          if (savedRole === "superadmin") setActiveTab("inicio");
+          if (savedRole === "partner") setActiveTab("agenda");
+          if (savedRole === "patient_guest") setActiveTab("reservar");
+          if (savedRole === "patient_registered") setActiveTab("reservar");
+        }
+      }
+    }
+  }, []);
+
+  // Force collapse on screens under 768px
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setSidebarCollapsed(true);
       }
     };
-    handleResize(); // check on mount
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Sync active tab when role changes to prevent rendering orphan tabs
   const handleRoleChange = (newRole: Role) => {
     setRole(newRole);
+    sessionStorage.setItem("zuma_role", newRole);
     if (newRole === "superadmin") {
       setActiveTab("inicio");
       setPatientSession(null);
@@ -78,7 +101,6 @@ export default function Home() {
       setPatientSession(null);
     } else if (newRole === "patient_registered") {
       setActiveTab("reservar");
-      // Preload a demo patient
       setPatientSession({
         dni: "20444333",
         nombre: "Roberto",
@@ -93,9 +115,43 @@ export default function Home() {
   const handleRegisterPatient = (patient: PatientSession) => {
     setPatientSession(patient);
     setRole("patient_registered");
+    sessionStorage.setItem("zuma_role", "patient_registered");
   };
 
-  // Define sidebar items menu filtering based on selected role
+  const handleUnlockSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = accessCode.trim();
+    if (code === "Arq") {
+      handleRoleChange("superadmin");
+      setIsUnlocked(true);
+      sessionStorage.setItem("zuma_unlocked", "true");
+      setLoginError("");
+    } else if (code.toLowerCase() === "jensen") {
+      handleRoleChange("partner");
+      setIsUnlocked(true);
+      sessionStorage.setItem("zuma_unlocked", "true");
+      setLoginError("");
+    } else if (code.toLowerCase() === "paciente") {
+      handleRoleChange("patient_guest");
+      setIsUnlocked(true);
+      sessionStorage.setItem("zuma_unlocked", "true");
+      setLoginError("");
+    } else {
+      setLoginError("Código de acceso incorrecto.");
+    }
+  };
+
+  const handleLogout = () => {
+    setShowLogoutAlert(true);
+    setTimeout(() => {
+      setShowLogoutAlert(false);
+      setIsUnlocked(false);
+      setAccessCode("");
+      sessionStorage.removeItem("zuma_unlocked");
+      sessionStorage.removeItem("zuma_role");
+    }, 1200);
+  };
+
   const getMenuItems = () => {
     switch (role) {
       case "superadmin":
@@ -155,14 +211,68 @@ export default function Home() {
     }
   };
 
-  const handleLogout = () => {
-    setShowLogoutAlert(true);
-    setTimeout(() => {
-      setShowLogoutAlert(false);
-      handleRoleChange("superadmin");
-    }, 1200);
-  };
+  // RENDER ACCESS LOCK OVERLAY
+  if (!isUnlocked) {
+    return (
+      <div className="fixed inset-0 w-screen h-screen bg-[#0c0c0e] flex items-center justify-center p-4 z-50 select-none font-sans">
+        
+        {/* Decorative subtle background gradients */}
+        <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full bg-indigo-600/10 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-teal-600/10 blur-3xl" />
 
+        <div className="w-full max-w-sm bg-[#131316] border border-[#27272a]/40 p-8 rounded-2xl shadow-2xl relative z-10 flex flex-col gap-6 text-center animate-slide-in">
+          
+          {/* Logo Icon */}
+          <div className="mx-auto w-12 h-12 rounded-xl bg-indigo-600/90 text-indigo-100 flex items-center justify-center font-bold shadow-md shadow-indigo-600/20">
+            <Layers className="w-6 h-6 stroke-[2]" />
+          </div>
+
+          <div>
+            <h1 className="font-display font-bold text-white text-lg tracking-tight">ZUMA CRM</h1>
+            <p className="text-xs text-slate-500 mt-1.5 leading-normal">
+              Acceso Restringido &bull; Prototipo de Validación Comercial
+            </p>
+          </div>
+
+          <form onSubmit={handleUnlockSubmit} className="flex flex-col gap-4">
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="password"
+                placeholder="Código de Acceso"
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-[#18181b] border border-[#27272a]/80 rounded-xl text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                autoFocus
+              />
+            </div>
+
+            {loginError && (
+              <span className="text-[10px] text-rose-500 font-semibold leading-none text-left pl-1">
+                {loginError}
+              </span>
+            )}
+
+            <button
+              type="submit"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              Desbloquear
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </form>
+
+          <div className="h-px bg-[#18181b]" />
+
+          <div className="text-[10px] text-slate-600 leading-normal">
+            Ingresa <code className="text-slate-400 font-mono">Arq</code> para acceder al panel de Administración de ZUMA.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // RENDER WORKSPACE (If Unlocked)
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#f8fafc] text-slate-800">
       
@@ -326,13 +436,13 @@ export default function Home() {
           {sidebarCollapsed ? (
             <div 
               onClick={handleLogout}
-              className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:bg-rose-900 flex items-center justify-center font-bold text-xs mx-auto shadow-sm cursor-pointer transition-colors group relative"
+              className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:bg-[#881337] flex items-center justify-center font-bold text-xs mx-auto shadow-sm cursor-pointer transition-colors group relative"
             >
               {role === "superadmin" && "SA"}
               {role === "partner" && "DR"}
               {(role === "patient_guest" || role === "patient_registered") && "P"}
               <div className="absolute left-16 bg-[#18181b] text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#27272a]/80 shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1.5 transition-all duration-200 z-50 shrink-0 whitespace-nowrap">
-                Cerrar Sesión / Reset
+                Cerrar Sesión / Bloquear
               </div>
             </div>
           ) : (
@@ -368,7 +478,7 @@ export default function Home() {
               <button 
                 onClick={handleLogout}
                 className="p-1 rounded text-slate-500 hover:bg-[#1f1f23] hover:text-rose-400 cursor-pointer"
-                title="Cerrar Sesión / Reset"
+                title="Cerrar Sesión / Bloquear"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -448,8 +558,8 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100 flex flex-col items-center gap-3 max-w-xs text-center">
             <LogOut className="w-12 h-12 text-rose-500 animate-bounce" />
-            <h3 className="font-semibold text-slate-800 text-sm">Cerrando Sesión...</h3>
-            <p className="text-xs text-slate-400 leading-normal">Simulando el cierre de sesión seguro del socio.</p>
+            <h3 className="font-semibold text-slate-800 text-sm">Bloqueando Acceso...</h3>
+            <p className="text-xs text-slate-400 leading-normal">Cerrando la sesión de pruebas y asegurando el portal.</p>
           </div>
         </div>
       )}
