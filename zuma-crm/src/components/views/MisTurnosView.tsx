@@ -1,0 +1,204 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { mockDB, MockTurno } from "@/lib/mockData";
+import { 
+  Calendar as CalendarIcon, 
+  Clock, 
+  Building2, 
+  AlertCircle, 
+  CreditCard, 
+  CheckCircle2, 
+  XCircle, 
+  ExternalLink,
+  Info
+} from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
+
+interface MisTurnosViewProps {
+  currentPatient: {
+    dni: string;
+    nombre: string;
+    apellido: string;
+    telefono: string;
+    email: string;
+    obraSocial: string;
+  } | null;
+  onGoToBooking: () => void;
+}
+
+export default function MisTurnosView({ currentPatient, onGoToBooking }: MisTurnosViewProps) {
+  const [myTurnos, setMyTurnos] = useState<MockTurno[]>([]);
+  const [payingTurnoId, setPayingTurnoId] = useState<string | null>(null);
+
+  const loadMyTurnos = () => {
+    if (!currentPatient) {
+      setMyTurnos([]);
+      return;
+    }
+    const all = mockDB.getTurnos();
+    // Filter matching by DNI or Email
+    const filtered = all.filter(t => 
+      t.paciente.dni === currentPatient.dni || 
+      t.paciente.email.toLowerCase() === currentPatient.email.toLowerCase()
+    );
+    // Sort chronologically (future appointments first or simple reverse ID sorting)
+    filtered.sort((a, b) => b.id.localeCompare(a.id));
+    setMyTurnos(filtered);
+  };
+
+  useEffect(() => {
+    loadMyTurnos();
+  }, [currentPatient]);
+
+  const handleSimulatePayment = (turnoId: string) => {
+    setPayingTurnoId(turnoId);
+    setTimeout(() => {
+      const all = mockDB.getTurnos();
+      const idx = all.findIndex(t => t.id === turnoId);
+      if (idx !== -1) {
+        all[idx].estado_turno = "CONFIRMADO";
+        if (all[idx].pago) {
+          all[idx].pago!.estado_pago = "APROBADO";
+          all[idx].pago!.monto_pagado = all[idx].pago!.monto_total / 2; // seña paid
+        }
+        mockDB.saveTurnos(all);
+      }
+      setPayingTurnoId(null);
+      loadMyTurnos();
+    }, 1200);
+  };
+
+  const handleCancelTurno = (turnoId: string) => {
+    if (confirm("¿Estás seguro de que deseas cancelar este turno?")) {
+      mockDB.updateTurnoStatus(turnoId, "CANCELADO_PACIENTE");
+      loadMyTurnos();
+    }
+  };
+
+  const getStatusLabel = (t: MockTurno) => {
+    if (t.estado_turno === "CONFIRMADO") return { text: "Confirmado", bg: "bg-emerald-50 border-emerald-200 text-emerald-700" };
+    if (t.estado_turno === "ATENDIDO") return { text: "Atendido", bg: "bg-teal-50 border-teal-200 text-teal-700" };
+    if (t.estado_turno === "PRE_RESERVADO") return { text: "Seña Pendiente", bg: "bg-amber-50 border-amber-200 text-amber-700 animate-pulse" };
+    return { text: "Cancelado", bg: "bg-slate-50 border-slate-200 text-slate-400" };
+  };
+
+  // If Guest (no patient profile)
+  if (!currentPatient) {
+    return (
+      <div className="max-w-md mx-auto bg-white border border-slate-200 p-8 rounded-2xl shadow-sm text-center flex flex-col items-center gap-4 animate-slide-in mt-6">
+        <CalendarIcon className="w-14 h-14 text-slate-300 stroke-[1.2]" />
+        <h3 className="font-semibold text-slate-700 text-sm">Mis Reservas</h3>
+        <p className="text-xs text-slate-400 leading-normal">
+          Para ver tus turnos agendados o realizar pagos de señas debes iniciar una reserva e identificarte con tus datos.
+        </p>
+        <button
+          onClick={onGoToBooking}
+          className="w-full bg-primary hover:bg-teal-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-all cursor-pointer mt-2"
+        >
+          Iniciar Nueva Reserva
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto flex flex-col gap-6 animate-slide-in">
+      
+      {/* Header details */}
+      <div className="flex justify-between items-center bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+        <div>
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Historial de Paciente</span>
+          <h3 className="font-bold text-slate-800 text-sm leading-snug">{currentPatient.nombre} {currentPatient.apellido}</h3>
+          <p className="text-[10px] text-slate-500 font-mono mt-0.5">DNI: {currentPatient.dni} &bull; {currentPatient.obraSocial}</p>
+        </div>
+        <button
+          onClick={onGoToBooking}
+          className="bg-primary hover:bg-teal-600 text-white font-bold py-2 px-3.5 rounded-lg text-xs shadow transition-all cursor-pointer"
+        >
+          Reservar Otro
+        </button>
+      </div>
+
+      <h2 className="text-sm font-semibold text-slate-700 -mb-2">Tus Reservas Solicitadas</h2>
+
+      {myTurnos.length === 0 ? (
+        <div className="bg-white border border-slate-200 p-12 text-center rounded-2xl flex flex-col items-center gap-3">
+          <Info className="w-10 h-10 text-slate-300" />
+          <p className="text-xs text-slate-400">No tienes turnos agendados con el Dr. Carlos Jensen en este momento.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {myTurnos.map((t) => {
+            const badge = getStatusLabel(t);
+            const isPendingPayment = t.estado_turno === "PRE_RESERVADO";
+            
+            return (
+              <div 
+                key={t.id} 
+                className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-4"
+              >
+                {/* Time and study details */}
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold text-teal-600">{t.hora_inicio} hs</span>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border ${badge.bg}`}>
+                        {badge.text}
+                      </span>
+                    </div>
+                    <h4 className="font-semibold text-slate-800 text-xs mt-1">
+                      {t.tipo_estudio}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                      {t.consultorio}
+                    </p>
+                  </div>
+                  
+                  <div className="text-right flex flex-col items-end gap-0.5">
+                    <span className="text-[10px] text-slate-400 font-mono">ID: {t.id}</span>
+                    <span className="text-xs font-bold text-slate-800">${t.pago?.monto_total.toLocaleString("es-AR")}</span>
+                  </div>
+                </div>
+
+                <div className="h-px bg-slate-100" />
+
+                {/* Subsections: payment / actions */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div className="text-[10px] text-slate-400">
+                    Reserva: <span className="font-semibold text-slate-600">{format(new Date(t.creado_el), "dd/MM/yyyy")}</span>
+                  </div>
+
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    {/* Simular MP pay option */}
+                    {isPendingPayment && (
+                      <button
+                        onClick={() => handleSimulatePayment(t.id)}
+                        disabled={payingTurnoId === t.id}
+                        className="flex-1 sm:flex-none bg-[#009EE3] hover:bg-[#008cc9] text-white font-bold py-1.5 px-3 rounded-lg text-[10px] shadow flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                        {payingTurnoId === t.id ? "Abonando..." : "Pagar Seña MP"}
+                      </button>
+                    )}
+
+                    {(t.estado_turno === "CONFIRMADO" || t.estado_turno === "PRE_RESERVADO") && (
+                      <button
+                        onClick={() => handleCancelTurno(t.id)}
+                        className="flex-1 sm:flex-none py-1.5 px-3 rounded-lg border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors text-[10px] font-semibold cursor-pointer"
+                      >
+                        Cancelar Reserva
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

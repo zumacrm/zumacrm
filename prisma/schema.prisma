@@ -1,0 +1,96 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model MedicoConfig {
+  id                String   @id @default(uuid()) @db.Uuid
+  nombre            String
+  especialidad      String
+  valor_consulta    Decimal  @db.Decimal(10, 2)
+  porcentaje_senia  Int      @default(50)
+  horario_atencion  Json     // Holds weekly schedule details: e.g. { "lunes": [{"inicio": "09:00", "fin": "13:00"}], ... }
+  
+  @@map("medicos_config")
+}
+
+model Paciente {
+  id          String   @id @default(uuid()) @db.Uuid
+  dni         String   @unique
+  nombre      String
+  apellido    String
+  telefono    String
+  email       String
+  obra_social String
+  turnos      Turno[]
+
+  @@index([dni])
+  @@index([email])
+  @@map("pacientes")
+}
+
+enum EstadoTurno {
+  PRE_RESERVADO
+  CONFIRMADO
+  CANCELADO_PACIENTE
+  CANCELADO_MEDICO
+  ATENDIDO
+}
+
+enum ViaReserva {
+  WEB_PACIENTE
+  SECRETARIA
+}
+
+model Turno {
+  id           String      @id @default(uuid()) @db.Uuid
+  paciente_id  String      @db.Uuid
+  paciente     Paciente    @relation(fields: [paciente_id], references: [id], onDelete: Cascade)
+  fecha        DateTime    @db.Date
+  hora_inicio  String      // e.g. "09:00"
+  hora_fin     String      // e.g. "09:30"
+  tipo_estudio String      // e.g. "Consulta general", "Electrocardiograma", "Ergometría", "Ecocardiograma"
+  consultorio  String      @default("Sanatorio Central Banda")
+  estado_turno EstadoTurno
+  via_reserva  ViaReserva
+  creado_el    DateTime    @default(now())
+  expira_el    DateTime
+  pago         PagoSenia?
+
+  @@index([fecha])
+  @@index([hora_inicio])
+  @@index([fecha, hora_inicio])
+  
+  // Note: To avoid double-bookings in production PostgreSQL, apply this unique constraint:
+  // CREATE UNIQUE INDEX unique_turno_slot ON "turnos" (fecha, hora_inicio) 
+  // WHERE estado_turno NOT IN ('CANCELADO_PACIENTE', 'CANCELADO_MEDICO');
+  // We will enforce this programmatically in our transaction logic to remain DB-independent and safe.
+  
+  @@map("turnos")
+}
+
+enum EstadoPago {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+  REEMBOLSADO
+}
+
+model PagoSenia {
+  id           String     @id @default(uuid()) @db.Uuid
+  turno_id     String     @unique @db.Uuid
+  turno        Turno      @relation(fields: [turno_id], references: [id], onDelete: Cascade)
+  monto_total  Decimal    @db.Decimal(10, 2)
+  monto_pagado Decimal    @db.Decimal(10, 2)
+  checkout_id  String     @unique
+  estado_pago  EstadoPago
+
+  @@map("pagos_senia")
+}
