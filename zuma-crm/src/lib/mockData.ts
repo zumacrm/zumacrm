@@ -2,6 +2,17 @@
 
 import { format, addDays, subDays } from "date-fns";
 
+export interface ConsultorioLocation {
+  id: string;
+  name: string;
+  address: string;
+  mapsUrl: string;
+  line2?: string;
+  phone?: string;
+  observations?: string;
+  imageUrl?: string; // stores logo/emblem identifier
+}
+
 export interface Partner {
   id: string;
   name: string;
@@ -10,10 +21,18 @@ export interface Partner {
   cuit: string;
   email: string;
   phone: string;
-  address: string;
+  address: string; // legacy address
   bio: string;
   logoColor: string;
   joinedDate: string;
+  
+  // Advanced SaaS & Profile fields
+  subscriptionPlan: "bronze" | "gold" | "platinum";
+  customMonthlyFee: number | null;
+  customCommissionPercentage: number | null;
+  logoUrl: string | null; // e.g. "emblem_clinic", "emblem_doctor"
+  specialties: string[];
+  locations: ConsultorioLocation[];
 }
 
 export interface MockTurno {
@@ -51,6 +70,20 @@ export interface MedicoConfig {
   horario_atencion: any;
 }
 
+export interface GlobalSaaSConfig {
+  globalCommission: number; // percentage, e.g. 10
+  bronzePrice: number;       // default cost, e.g. 29
+  goldPrice: number;         // default cost, e.g. 59
+  platinumPrice: number;     // default cost, e.g. 99
+}
+
+const DEFAULT_SAAS_CONFIG: GlobalSaaSConfig = {
+  globalCommission: 10,
+  bronzePrice: 29,
+  goldPrice: 59,
+  platinumPrice: 99
+};
+
 // Initial Partners list
 const INITIAL_PARTNERS: Partner[] = [
   {
@@ -61,49 +94,77 @@ const INITIAL_PARTNERS: Partner[] = [
     cuit: "20-35123456-9",
     email: "carlos.jensen@consultorio.com",
     phone: "+549385654321",
-    address: "Sanatorio Central Banda / Clínica Del Pilar / Centro Médico Cannon",
+    address: "Sanatorio Central Banda",
     bio: "Especialista en cardiología clínica, arritmias, cardiometabolismo, control en embarazo y chagas.",
     logoColor: "bg-teal-500",
-    joinedDate: "12/03/2026"
-  },
-  {
-    id: "sanatorio-central-banda",
-    name: "Sanatorio Central Banda",
-    category: "Sanatorio y Prácticas",
-    status: "active",
-    cuit: "30-55443322-1",
-    email: "administracion@sanatoriocentral.com",
-    phone: "+5493854221100",
-    address: "España 150, La Banda",
-    bio: "Sanatorio de alta complejidad y consultorios integrados en la ciudad de La Banda.",
-    logoColor: "bg-blue-500",
-    joinedDate: "15/03/2026"
-  },
-  {
-    id: "clinica-del-pilar",
-    name: "Clínica Del Pilar",
-    category: "Clínica Privada",
-    status: "active",
-    cuit: "30-77665544-2",
-    email: "contacto@clinicadelpilar.com",
-    phone: "+5493854212121",
-    address: "Pellegrini 350, Santiago del Estero",
-    bio: "Clínica especializada en atención ambulatoria y diagnóstico cardiológico.",
-    logoColor: "bg-indigo-500",
-    joinedDate: "18/03/2026"
+    joinedDate: "12/03/2026",
+    subscriptionPlan: "gold",
+    customMonthlyFee: null,
+    customCommissionPercentage: null,
+    logoUrl: "emblem_doctor",
+    specialties: ["Cardiología clínica", "Cardio metabolismo", "Arritmias", "Embarazo", "Chagas"],
+    locations: [
+      {
+        id: "loc-1",
+        name: "Sanatorio Central Banda",
+        address: "España 150, La Banda",
+        mapsUrl: "https://maps.google.com/?q=Sanatorio+Central+Banda+La+Banda",
+        line2: "Consultorio 4, Planta Baja",
+        phone: "0385-4221100",
+        observations: "Estacionamiento disponible en la calle España. Secretaría general en Planta Baja.",
+        imageUrl: "emblem_clinic"
+      },
+      {
+        id: "loc-2",
+        name: "Clínica Del Pilar",
+        address: "Pellegrini 350, Santiago del Estero",
+        mapsUrl: "https://maps.google.com/?q=Clinica+Del+Pilar+Santiago+del+Estero",
+        line2: "1º Piso, Consultorio A",
+        phone: "0385-4212121",
+        observations: "Ingreso directo por escalera o ascensor. Anunciarse en la recepción del primer piso.",
+        imageUrl: "emblem_heart"
+      },
+      {
+        id: "loc-3",
+        name: "Centro Médico Cannon",
+        address: "Av. Belgrano Sur 800, Santiago",
+        mapsUrl: "https://maps.google.com/?q=Centro+Medico+Cannon+Santiago+del+Estero",
+        line2: "Consultorio B, PB",
+        phone: "0385-4241010",
+        observations: "Consultas programadas únicamente para los días viernes por la tarde.",
+        imageUrl: "emblem_cross"
+      }
+    ]
   },
   {
     id: "laboratorios-biolab",
     name: "Laboratorios Biolab",
     category: "Análisis Clínicos",
-    status: "pending",
+    status: "active",
     cuit: "30-99887766-3",
     email: "bioquimica@biolab.com",
     phone: "+5493854332211",
     address: "Av. Belgrano Norte 450, Santiago",
     bio: "Laboratorio bioquímico avanzado para estudios clínicos y genéticos.",
     logoColor: "bg-emerald-500",
-    joinedDate: "20/06/2026"
+    joinedDate: "20/06/2026",
+    subscriptionPlan: "bronze",
+    customMonthlyFee: null,
+    customCommissionPercentage: null,
+    logoUrl: "emblem_clinic",
+    specialties: ["Análisis Clínicos", "Hemogramas", "Bioquímica", "Laboratorios"],
+    locations: [
+      {
+        id: "loc-4",
+        name: "BioLab Central",
+        address: "Av. Belgrano Norte 450, Santiago",
+        mapsUrl: "https://maps.google.com/?q=Av+Belgrano+Norte+450+Santiago+del+Estero",
+        line2: "Planta Baja",
+        phone: "0385-4332211",
+        observations: "Extracciones de sangre de 07:00 a 10:00 hs sin turno previo.",
+        imageUrl: "emblem_clinic"
+      }
+    ]
   },
   {
     id: "megagimnasio-banda",
@@ -116,33 +177,24 @@ const INITIAL_PARTNERS: Partner[] = [
     address: "Aristóbulo del Valle 240, La Banda",
     bio: "Centro de entrenamiento de alto rendimiento, musculación y clases grupales.",
     logoColor: "bg-orange-500",
-    joinedDate: "05/04/2026"
-  },
-  {
-    id: "la-casona-restaurante",
-    name: "La Casona Restaurante",
-    category: "Gastronomía",
-    status: "active",
-    cuit: "23-28492049-9",
-    email: "reservas@lacasona.com",
-    phone: "+5493854245678",
-    address: "Av. Belgrano Sur 1400, Santiago",
-    bio: "Restaurante de comida tradicional, parrilla y eventos corporativos.",
-    logoColor: "bg-rose-500",
-    joinedDate: "12/05/2026"
-  },
-  {
-    id: "prof-maria-rossi",
-    name: "Prof. María Rossi",
-    category: "Profesor / Idiomas",
-    status: "suspended",
-    cuit: "27-25123987-4",
-    email: "maria.rossi.english@gmail.com",
-    phone: "+5493855123456",
-    address: "Sáenz Peña 120, Santiago",
-    bio: "Clases particulares de inglés de negocios y preparación para exámenes internacionales.",
-    logoColor: "bg-red-500",
-    joinedDate: "22/03/2026"
+    joinedDate: "05/04/2026",
+    subscriptionPlan: "platinum",
+    customMonthlyFee: 79, // custom discount
+    customCommissionPercentage: 5, // custom commission
+    logoUrl: "emblem_cross",
+    specialties: ["Fitness", "Musculación", "Fisioterapia", "Rehabilitación deportiva"],
+    locations: [
+      {
+        id: "loc-5",
+        name: "MegaGimnasio Sede La Banda",
+        address: "Aristóbulo del Valle 240, La Banda",
+        mapsUrl: "https://maps.google.com/?q=Aristobulo+del+Valle+240+La+Banda",
+        line2: "Instalación Deportiva",
+        phone: "0385-6443322",
+        observations: "Estacionamiento exclusivo para socios de Zuma.",
+        imageUrl: "emblem_cross"
+      }
+    ]
   }
 ];
 
@@ -169,11 +221,9 @@ const INITIAL_MEDICO_CONFIG: MedicoConfig = {
   }
 };
 
-// Generate preloaded appointments for tests
 const getPreloadedTurnos = (): MockTurno[] => {
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const tomorrowStr = format(addDays(new Date(), 1), "yyyy-MM-dd");
-  const yesterdayStr = format(subDays(new Date(), 1), "yyyy-MM-dd");
 
   return [
     {
@@ -205,85 +255,32 @@ const getPreloadedTurnos = (): MockTurno[] => {
     {
       id: "turno-2",
       paciente: {
-        dni: "35999888",
-        nombre: "Estela",
-        apellido: "Gomez",
-        telefono: "+5493855888999",
-        email: "estelag@hotmail.com",
-        obra_social: "Swiss Medical"
+        dni: "20444333",
+        nombre: "Roberto",
+        apellido: "Sosa",
+        telefono: "+5493854111222",
+        email: "roberto.sosa@gmail.com",
+        obra_social: "OSDE"
       },
       fecha: todayStr,
       hora_inicio: "10:30",
       hora_fin: "11:00",
       tipo_estudio: "Electrocardiograma",
       consultorio: "Sanatorio Central Banda",
-      estado_turno: "CONFIRMADO",
-      via_reserva: "WEB_PACIENTE",
-      creado_el: new Date().toISOString(),
-      expira_el: new Date().toISOString(),
-      pago: {
-        monto_total: 24000,
-        monto_pagado: 12000,
-        checkout_id: "pref_2b",
-        estado_pago: "APROBADO"
-      }
-    },
-    {
-      id: "turno-3",
-      paciente: {
-        dni: "41000111",
-        nombre: "Lucas",
-        apellido: "Benitez",
-        telefono: "+5493856222333",
-        email: "lucasb@live.com.ar",
-        obra_social: "Particular"
-      },
-      fecha: todayStr,
-      hora_inicio: "15:00",
-      hora_fin: "15:45",
-      tipo_estudio: "Ergometría",
-      consultorio: "Sanatorio Central Banda",
       estado_turno: "PRE_RESERVADO",
       via_reserva: "WEB_PACIENTE",
       creado_el: new Date().toISOString(),
-      expira_el: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // expires in 10 mins
+      expira_el: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
       pago: {
-        monto_total: 45000,
-        monto_pagado: 22500,
-        checkout_id: "pref_3c",
-        estado_pago: "PENDIENTE"
-      }
-    },
-    {
-      id: "turno-4",
-      paciente: {
-        dni: "18222333",
-        nombre: "Clara",
-        apellido: "Mendez",
-        telefono: "+5493854999000",
-        email: "clarita.m@gmail.com",
-        obra_social: "Particular"
-      },
-      fecha: tomorrowStr,
-      hora_inicio: "10:00",
-      hora_fin: "10:30",
-      tipo_estudio: "Ecocardiograma",
-      consultorio: "Clínica Del Pilar",
-      estado_turno: "CONFIRMADO",
-      via_reserva: "SECRETARIA",
-      creado_el: new Date().toISOString(),
-      expira_el: new Date().toISOString(),
-      pago: {
-        monto_total: 36000,
+        monto_total: 24000,
         monto_pagado: 0,
-        checkout_id: "PAGA_EN_CONSULTORIO",
+        checkout_id: "pref_2b",
         estado_pago: "PENDIENTE"
       }
     }
   ];
 };
 
-// Database Initializer (LocalStorage Helper)
 const isBrowser = typeof window !== "undefined";
 
 const getDB = (key: string, initial: any) => {
@@ -302,10 +299,23 @@ const saveDB = (key: string, data: any) => {
   }
 };
 
-// Exposed API functions
 export const mockDB = {
+  // Global SaaS variables
+  getSaaSConfig: (): GlobalSaaSConfig => {
+    return getDB("zuma_saas_global_config", DEFAULT_SAAS_CONFIG);
+  },
+
+  saveSaaSConfig: (config: GlobalSaaSConfig) => {
+    saveDB("zuma_saas_global_config", config);
+  },
+
+  // Partners list
   getPartners: (): Partner[] => {
     return getDB("zuma_partners", INITIAL_PARTNERS);
+  },
+
+  savePartners: (partners: Partner[]) => {
+    saveDB("zuma_partners", partners);
   },
 
   addPartner: (partner: Partner) => {
@@ -320,16 +330,17 @@ export const mockDB = {
 
   saveMedicoConfig: (config: MedicoConfig) => {
     saveDB("zuma_medico_config", config);
-    // Also sync names in partners list
+    // Sync to Dr Carlos Jensen profile
     const partners = mockDB.getPartners();
-    const index = partners.findIndex(p => p.id === "dr-carlos-jensen");
-    if (index !== -1) {
-      partners[index].name = config.nombre;
-      partners[index].bio = config.especialidad;
+    const idx = partners.findIndex(p => p.id === "dr-carlos-jensen");
+    if (idx !== -1) {
+      partners[idx].name = config.nombre;
+      partners[idx].bio = config.especialidad;
       saveDB("zuma_partners", partners);
     }
   },
 
+  // Turnos bookings list
   getTurnos: (): MockTurno[] => {
     return getDB("zuma_turnos", getPreloadedTurnos());
   },
@@ -342,8 +353,8 @@ export const mockDB = {
     const list = mockDB.getTurnos();
     const now = new Date();
     const expira = turno.via_reserva === "SECRETARIA" 
-      ? addDays(now, 365) // placeholder for manual
-      : new Date(now.getTime() + 15 * 60 * 1000); // 15 mins lock
+      ? addDays(now, 365)
+      : new Date(now.getTime() + 15 * 60 * 1000);
 
     const newTurno: MockTurno = {
       ...turno,
@@ -369,9 +380,7 @@ export const mockDB = {
     if (idx !== -1) {
       list[idx].estado_turno = status;
       if (status === "ATENDIDO") {
-        if (list[idx].pago) {
-          list[idx].pago!.estado_pago = "APROBADO";
-        }
+        if (list[idx].pago) list[idx].pago!.estado_pago = "APROBADO";
       } else if (status === "CANCELADO_MEDICO") {
         if (list[idx].pago) list[idx].pago!.estado_pago = "REEMBOLSADO";
       } else if (status === "CANCELADO_PACIENTE") {

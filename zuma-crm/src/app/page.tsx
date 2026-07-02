@@ -4,12 +4,11 @@ import { useState, useEffect } from "react";
 import { 
   Home as HomeIcon, 
   LayoutDashboard, 
-  Folder, 
-  CheckSquare, 
+  User as UserIcon, 
+  Settings as SettingsIcon, 
   BarChart2, 
   Bell, 
   HelpCircle, 
-  Settings, 
   LogOut, 
   Menu, 
   ChevronLeft, 
@@ -19,8 +18,11 @@ import {
   Shield,
   Calendar,
   FileText,
-  Lock,
-  ArrowRight
+  Sliders,
+  Heart,
+  Activity,
+  Building2,
+  Stethoscope
 } from "lucide-react";
 import InicioView from "@/components/views/InicioView";
 import PerfilPublicoView from "@/components/views/PerfilPublicoView";
@@ -29,6 +31,10 @@ import ConfiguracionView from "@/components/views/ConfiguracionView";
 import FacturacionView from "@/components/views/FacturacionView";
 import ReservarTurnoView from "@/components/views/ReservarTurnoView";
 import MisTurnosView from "@/components/views/MisTurnosView";
+import PacienteDashboardView from "@/components/views/PacienteDashboardView";
+import PacientePerfilView from "@/components/views/PacientePerfilView";
+import SaaSConfigView from "@/components/views/SaaSConfigView";
+import { mockDB } from "@/lib/mockData";
 
 type Role = "superadmin" | "partner" | "patient_guest" | "patient_registered";
 
@@ -39,7 +45,17 @@ interface PatientSession {
   telefono: string;
   email: string;
   obraSocial: string;
+  avatarKey?: string;
 }
+
+const AVAILABLE_AVATARS = [
+  { key: "avatar_man_1", emoji: "👨" },
+  { key: "avatar_woman_1", emoji: "👩" },
+  { key: "avatar_man_2", emoji: "🧔" },
+  { key: "avatar_woman_2", emoji: "👩‍🦰" },
+  { key: "avatar_kid", emoji: "🧑" },
+  { key: "avatar_glasses", emoji: "🤓" }
+];
 
 export default function Home() {
   const [role, setRole] = useState<Role>("superadmin");
@@ -56,24 +72,35 @@ export default function Home() {
   // Patient session state
   const [patientSession, setPatientSession] = useState<PatientSession | null>(null);
 
+  // Active Partner logo sync trigger
+  const [partnerLogoUrl, setPartnerLogoUrl] = useState("emblem_doctor");
+  const [partnerLogoColor, setPartnerLogoColor] = useState("bg-teal-500");
+
   // Check session storage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem("zuma_unlocked");
       if (saved === "true") {
         setIsUnlocked(true);
-        // Recover last role from storage if set
         const savedRole = sessionStorage.getItem("zuma_role") as Role;
         if (savedRole) {
           setRole(savedRole);
           if (savedRole === "superadmin") setActiveTab("inicio");
           if (savedRole === "partner") setActiveTab("agenda");
-          if (savedRole === "patient_guest") setActiveTab("reservar");
-          if (savedRole === "patient_registered") setActiveTab("reservar");
+          if (savedRole === "patient_guest" || savedRole === "patient_registered") setActiveTab("dashboard");
         }
       }
     }
   }, []);
+
+  // Sync partner logo details
+  useEffect(() => {
+    const partner = mockDB.getPartners().find(p => p.id === "dr-carlos-jensen");
+    if (partner) {
+      setPartnerLogoUrl(partner.logoUrl || "emblem_doctor");
+      setPartnerLogoColor(partner.logoColor || "bg-teal-500");
+    }
+  }, [activeTab, role]);
 
   // Force collapse on screens under 768px
   useEffect(() => {
@@ -97,17 +124,18 @@ export default function Home() {
       setActiveTab("agenda");
       setPatientSession(null);
     } else if (newRole === "patient_guest") {
-      setActiveTab("reservar");
+      setActiveTab("dashboard");
       setPatientSession(null);
     } else if (newRole === "patient_registered") {
-      setActiveTab("reservar");
+      setActiveTab("dashboard");
       setPatientSession({
         dni: "20444333",
         nombre: "Roberto",
         apellido: "Sosa",
         telefono: "+5493854111222",
         email: "roberto.sosa@gmail.com",
-        obraSocial: "OSDE"
+        obraSocial: "OSDE",
+        avatarKey: "avatar_glasses"
       });
     }
   };
@@ -116,6 +144,15 @@ export default function Home() {
     setPatientSession(patient);
     setRole("patient_registered");
     sessionStorage.setItem("zuma_role", "patient_registered");
+  };
+
+  const handleUpdatePatient = (updated: PatientSession) => {
+    setPatientSession(updated);
+  };
+
+  const handleSelectPartnerFromDashboard = (partnerId: string) => {
+    // Jump straight to the Reservation page
+    setActiveTab("reservar");
   };
 
   const handleUnlockSubmit = (e: React.FormEvent) => {
@@ -157,20 +194,23 @@ export default function Home() {
       case "superadmin":
         return [
           { id: "inicio", label: "Home", icon: HomeIcon, desc: "Directorio de Socios" },
-          { id: "facturacion", label: "Global Reporting", icon: BarChart2, desc: "Planes e Invoicing Global" }
+          { id: "saas_config", label: "SaaS Config", icon: Sliders, desc: "Precios y Comisiones" },
+          { id: "facturacion", label: "Global Reporting", icon: BarChart2, desc: "MRR e Invoicing Global" }
         ];
       case "partner":
         return [
           { id: "agenda", label: "Dashboard", icon: LayoutDashboard, desc: "Mi Agenda de Turnos" },
-          { id: "perfil", label: "Projects", icon: Folder, desc: "Mi Perfil Público" },
-          { id: "config", label: "Tasks", icon: CheckSquare, desc: "Configuración Admin" },
-          { id: "facturacion", label: "Reporting", icon: BarChart2, desc: "Suscripción y Facturas" }
+          { id: "perfil", label: "Profile", icon: UserIcon, desc: "Mi Perfil Público" },
+          { id: "config", label: "Settings", icon: SettingsIcon, desc: "Configuración Admin" },
+          { id: "facturacion", label: "Subscription", icon: BarChart2, desc: "Abonos y Facturas" }
         ];
       case "patient_guest":
       case "patient_registered":
         return [
+          { id: "dashboard", label: "Dashboard", icon: HomeIcon, desc: "Directorio de Socios" },
           { id: "reservar", label: "Reservar Turno", icon: Calendar, desc: "Solicitar turno médico" },
-          { id: "historial", label: "Mis Turnos", icon: FileText, desc: "Gestionar reservas y señas" }
+          { id: "historial", label: "Mis Turnos", icon: FileText, desc: "Gestionar reservas y señas" },
+          { id: "paciente_perfil", label: "Profile", icon: UserIcon, desc: "Mi Información Personal" }
         ];
       default:
         return [];
@@ -183,6 +223,8 @@ export default function Home() {
     switch (activeTab) {
       case "inicio":
         return <InicioView />;
+      case "saas_config":
+        return <SaaSConfigView />;
       case "agenda":
         return <AgendaView />;
       case "perfil":
@@ -190,7 +232,11 @@ export default function Home() {
       case "config":
         return <ConfiguracionView />;
       case "facturacion":
-        return <FacturacionView />;
+        return <FacturacionView role={role} />;
+      case "dashboard":
+        return <PacienteDashboardView onSelectPartner={handleSelectPartnerFromDashboard} />;
+      case "paciente_perfil":
+        return <PacientePerfilView currentPatient={patientSession} onUpdatePatient={handleUpdatePatient} />;
       case "reservar":
         return (
           <ReservarTurnoView 
@@ -211,18 +257,27 @@ export default function Home() {
     }
   };
 
+  const getPatientAvatarEmoji = () => {
+    if (!patientSession?.avatarKey) return "👤";
+    const found = AVAILABLE_AVATARS.find(a => a.key === patientSession.avatarKey);
+    return found ? found.emoji : "👤";
+  };
+
+  const getPartnerEmblemIcon = (key: string) => {
+    if (key === "emblem_doctor") return <Stethoscope className="w-3.5 h-3.5" />;
+    if (key === "emblem_heart") return <Heart className="w-3.5 h-3.5" />;
+    if (key === "emblem_cross") return <Activity className="w-3.5 h-3.5" />;
+    return <Building2 className="w-3.5 h-3.5" />;
+  };
+
   // RENDER ACCESS LOCK OVERLAY
   if (!isUnlocked) {
     return (
       <div className="fixed inset-0 w-screen h-screen bg-[#0c0c0e] flex items-center justify-center p-4 z-50 select-none font-sans">
-        
-        {/* Decorative subtle background gradients */}
         <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full bg-indigo-600/10 blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-teal-600/10 blur-3xl" />
 
         <div className="w-full max-w-sm bg-[#131316] border border-[#27272a]/40 p-8 rounded-2xl shadow-2xl relative z-10 flex flex-col gap-6 text-center animate-slide-in">
-          
-          {/* Logo Icon */}
           <div className="mx-auto w-12 h-12 rounded-xl bg-indigo-600/90 text-indigo-100 flex items-center justify-center font-bold shadow-md shadow-indigo-600/20">
             <Layers className="w-6 h-6 stroke-[2]" />
           </div>
@@ -236,7 +291,7 @@ export default function Home() {
 
           <form onSubmit={handleUnlockSubmit} className="flex flex-col gap-4">
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Shield className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 placeholder="Código de Acceso"
@@ -255,17 +310,18 @@ export default function Home() {
 
             <button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-all cursor-pointer"
             >
               Desbloquear
-              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
 
           <div className="h-px bg-[#18181b]" />
 
-          <div className="text-[10px] text-slate-600 leading-normal">
-            Ingresa <code className="text-slate-400 font-mono">Arq</code> para acceder al panel de Administración de ZUMA.
+          <div className="text-[10px] text-slate-600 leading-normal flex flex-col gap-1 text-left">
+            <p>&bull; Administrador: ingresar <code className="text-slate-400 font-mono">Arq</code></p>
+            <p>&bull; Médico: ingresar <code className="text-slate-400 font-mono">jensen</code></p>
+            <p>&bull; Paciente: ingresar <code className="text-slate-400 font-mono">paciente</code></p>
           </div>
         </div>
       </div>
@@ -276,26 +332,24 @@ export default function Home() {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#f8fafc] text-slate-800">
       
-      {/* 1. COLLAPSIBLE DARK SIDEBAR ("Untitled" style) */}
+      {/* 1. COLLAPSIBLE SIDEBAR */}
       <aside 
         className={`h-full bg-[#0c0c0e] border-r border-[#1e1e21] flex flex-col justify-between transition-all duration-300 ease-in-out shrink-0 relative z-10 select-none
           ${sidebarCollapsed ? "w-16" : "w-60"}`}
       >
         <div>
-          {/* Header section (Untitled Logo + Toggle) */}
+          {/* Header */}
           <div className="h-14 border-b border-[#18181b] flex items-center px-4 justify-between overflow-hidden">
             <div className="flex items-center gap-2.5 min-w-[150px]">
               <div className="w-7 h-7 rounded-lg bg-indigo-600/90 text-indigo-100 flex items-center justify-center font-bold shadow-md shadow-indigo-600/20">
                 <Layers className="w-4.5 h-4.5 stroke-[2]" />
               </div>
-              
               {!sidebarCollapsed && (
                 <span className="font-display font-semibold text-sm tracking-tight text-white animate-fade-in">
                   ZUMA CRM
                 </span>
               )}
             </div>
-            
             {!sidebarCollapsed && (
               <button 
                 onClick={() => setSidebarCollapsed(true)}
@@ -329,7 +383,7 @@ export default function Home() {
             )}
           </div>
 
-          {/* Dynamic Navigation links */}
+          {/* Navigation links */}
           <nav className="px-2 flex flex-col gap-1 mt-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -345,12 +399,7 @@ export default function Home() {
                       : "text-slate-400 hover:bg-[#131315] hover:text-slate-200"}`}
                 >
                   <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
-                  
-                  {!sidebarCollapsed && (
-                    <span className="text-xs leading-none animate-fade-in">{item.label}</span>
-                  )}
-
-                  {/* Tooltip on hover in collapsed view */}
+                  {!sidebarCollapsed && <span className="text-xs leading-none animate-fade-in">{item.label}</span>}
                   {sidebarCollapsed && (
                     <div className="absolute left-16 bg-[#18181b] text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#27272a]/80 shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1.5 transition-all duration-200 z-50 shrink-0 whitespace-nowrap">
                       {item.label}
@@ -364,7 +413,6 @@ export default function Home() {
 
         {/* Bottom section */}
         <div className="flex flex-col gap-1.5 p-2 bg-[#09090b]/40 border-t border-[#18181b]">
-          
           {sidebarCollapsed && (
             <button 
               onClick={() => setSidebarCollapsed(false)}
@@ -374,9 +422,8 @@ export default function Home() {
             </button>
           )}
 
-          {/* Bottom utilities icons list */}
           <div className="flex flex-col gap-1 px-1">
-            {/* Notification Alert */}
+            {/* Notification */}
             <button 
               onClick={() => setActiveTab(role === "superadmin" || role === "partner" ? "facturacion" : "historial")}
               className="group w-full flex items-center gap-2.5 py-1.5 rounded text-slate-400 hover:text-slate-200 text-left relative cursor-pointer"
@@ -388,89 +435,62 @@ export default function Home() {
               {!sidebarCollapsed && (
                 <div className="flex justify-between items-center flex-1 animate-fade-in text-xs">
                   <span>Notification</span>
-                  <span className="bg-indigo-600/80 text-white font-bold text-[8px] px-1.5 py-0.5 rounded-full">
-                    {role === "superadmin" ? "1" : "3"}
-                  </span>
-                </div>
-              )}
-              {sidebarCollapsed && (
-                <div className="absolute left-16 bg-[#18181b] text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#27272a]/80 shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1.5 transition-all duration-200 z-50 shrink-0 whitespace-nowrap">
-                  Notifications
+                  <span className="bg-indigo-600/80 text-white font-bold text-[8px] px-1.5 py-0.5 rounded-full">3</span>
                 </div>
               )}
             </button>
 
-            {/* Support Help */}
+            {/* Support */}
             <button 
               onClick={() => alert("Soporte ZUMA: crm@zuma.com")}
               className="group w-full flex items-center gap-2.5 py-1.5 rounded text-slate-400 hover:text-slate-200 text-left relative cursor-pointer"
             >
               <HelpCircle className="w-4 h-4 text-slate-500 group-hover:text-slate-300 shrink-0" />
               {!sidebarCollapsed && <span className="text-xs animate-fade-in">Support</span>}
-              {sidebarCollapsed && (
-                <div className="absolute left-16 bg-[#18181b] text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#27272a]/80 shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1.5 transition-all duration-200 z-50 shrink-0 whitespace-nowrap">
-                  Support
-                </div>
-              )}
             </button>
-
-            {role === "partner" && (
-              <button 
-                onClick={() => setActiveTab("config")}
-                className="group w-full flex items-center gap-2.5 py-1.5 rounded text-slate-400 hover:text-slate-200 text-left relative cursor-pointer"
-              >
-                <Settings className="w-4 h-4 text-slate-500 group-hover:text-slate-300 shrink-0" />
-                {!sidebarCollapsed && <span className="text-xs animate-fade-in">Settings</span>}
-                {sidebarCollapsed && (
-                  <div className="absolute left-16 bg-[#18181b] text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#27272a]/80 shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1.5 transition-all duration-200 z-50 shrink-0 whitespace-nowrap">
-                    Settings
-                  </div>
-                )}
-              </button>
-            )}
           </div>
 
           <div className="h-px bg-[#18181b] my-1" />
 
-          {/* Dynamic footer depending on selected role */}
+          {/* User profile avatar footer */}
           {sidebarCollapsed ? (
             <div 
               onClick={handleLogout}
-              className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:bg-[#881337] flex items-center justify-center font-bold text-xs mx-auto shadow-sm cursor-pointer transition-colors group relative"
+              className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:bg-rose-950 flex items-center justify-center font-bold text-xs mx-auto shadow-sm cursor-pointer transition-colors group relative"
             >
               {role === "superadmin" && "SA"}
               {role === "partner" && "DR"}
-              {(role === "patient_guest" || role === "patient_registered") && "P"}
-              <div className="absolute left-16 bg-[#18181b] text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#27272a]/80 shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1.5 transition-all duration-200 z-50 shrink-0 whitespace-nowrap">
-                Cerrar Sesión / Bloquear
-              </div>
+              {role === "patient_guest" && "IN"}
+              {role === "patient_registered" && getPatientAvatarEmoji()}
             </div>
           ) : (
             <div className="flex items-center justify-between bg-[#141416] border border-[#27272a]/20 p-2.5 rounded-xl shadow-inner animate-fade-in">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`w-7 h-7 rounded-full text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm
-                  ${role === "superadmin" ? "bg-indigo-600" : ""}
-                  ${role === "partner" ? "bg-teal-500" : ""}
-                  ${role === "patient_guest" || role === "patient_registered" ? "bg-blue-500" : ""}
-                `}>
-                  {role === "superadmin" && "SA"}
-                  {role === "partner" && "DR"}
-                  {role === "patient_guest" && "IN"}
-                  {role === "patient_registered" && "RS"}
-                </div>
+                {role === "partner" ? (
+                  <div className={`w-7 h-7 rounded-lg ${partnerLogoColor} text-white flex items-center justify-center shadow-sm shrink-0`}>
+                    {getPartnerEmblemIcon(partnerLogoUrl)}
+                  </div>
+                ) : (
+                  <div className={`w-7 h-7 rounded-full text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm
+                    ${role === "superadmin" ? "bg-indigo-600" : "bg-blue-500"}`}>
+                    {role === "superadmin" && "SA"}
+                    {role === "patient_guest" && "IN"}
+                    {role === "patient_registered" && getPatientAvatarEmoji()}
+                  </div>
+                )}
                 
                 <div className="flex flex-col min-w-0">
                   <span className="text-[11px] font-bold text-white leading-none truncate">
                     {role === "superadmin" && "ZUMA Admin"}
-                    {role === "partner" && "Dr. Carlos Jensen"}
+                    {role === "partner" && nombre}
                     {role === "patient_guest" && "Paciente Invitado"}
                     {role === "patient_registered" && `${patientSession?.nombre} ${patientSession?.apellido}`}
                   </span>
                   <span className="text-[9px] font-medium text-slate-500 mt-1 truncate">
                     {role === "superadmin" && "Plataforma SaaS"}
-                    {role === "partner" && "carlos.jensen@consultorio.com"}
+                    {role === "partner" && email}
                     {role === "patient_guest" && "Sin identificar"}
-                    {role === "patient_registered" && `${patientSession?.email}`}
+                    {role === "patient_registered" && patientSession?.email}
                   </span>
                 </div>
               </div>
@@ -484,14 +504,11 @@ export default function Home() {
               </button>
             </div>
           )}
-
         </div>
       </aside>
 
       {/* 2. MAIN WORKSPACE */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        
-        {/* Top bar header with Dynamic Role Switcher */}
         <header className="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {sidebarCollapsed && (
@@ -507,12 +524,15 @@ export default function Home() {
               <span>/</span>
               <span className="text-slate-600 capitalize font-bold">
                 {activeTab === "inicio" && "Directorio Socios"}
+                {activeTab === "saas_config" && "SaaS Config"}
                 {activeTab === "agenda" && "Mi Agenda"}
                 {activeTab === "perfil" && "Mi Perfil Público"}
                 {activeTab === "config" && "Configuración"}
                 {activeTab === "facturacion" && (role === "superadmin" ? "Suscripciones Globales" : "Mi Facturación")}
+                {activeTab === "dashboard" && "Dashboard Paciente"}
                 {activeTab === "reservar" && "Reserva de Turnos"}
                 {activeTab === "historial" && "Mis Turnos"}
+                {activeTab === "paciente_perfil" && "Mi Perfil"}
               </span>
             </div>
           </div>
