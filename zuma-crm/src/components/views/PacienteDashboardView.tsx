@@ -38,7 +38,14 @@ export default function PacienteDashboardView({ onSelectPartner }: PacienteDashb
 
   // Helper to render beautiful category logos
   const renderEmblem = (logoUrl: string | null, color: string) => {
-    const base = "w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0";
+    const base = "w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden";
+    if (logoUrl && (logoUrl.startsWith("data:image/") || logoUrl.startsWith("http"))) {
+      return (
+        <div className={`${base} ${color}`}>
+          <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+        </div>
+      );
+    }
     if (logoUrl === "emblem_doctor") {
       return <div className={`${base} ${color}`}><Stethoscope className="w-5 h-5" /></div>;
     }

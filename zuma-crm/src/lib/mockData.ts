@@ -167,32 +167,62 @@ const INITIAL_PARTNERS: Partner[] = [
     ]
   },
   {
-    id: "megagimnasio-banda",
-    name: "MegaGimnasio Banda",
+    id: "potenza-gym",
+    name: "Potenza Gym",
     category: "Gimnasio y Fitness",
     status: "active",
-    cuit: "20-22114433-8",
-    email: "fitness@megagimnasio.com",
-    phone: "+5493856443322",
-    address: "Aristóbulo del Valle 240, La Banda",
-    bio: "Centro de entrenamiento de alto rendimiento, musculación y clases grupales.",
+    cuit: "20-33221144-8",
+    email: "contacto@potenzagym.com",
+    phone: "+5493855001122",
+    address: "Av. Belgrano Sur 1450, Santiago del Estero",
+    bio: "Centro de preparación física de alto rendimiento, entrenamiento funcional y musculación en Santiago del Estero.",
     logoColor: "bg-orange-500",
     joinedDate: "05/04/2026",
     subscriptionPlan: "platinum",
-    customMonthlyFee: 79, // custom discount
-    customCommissionPercentage: 5, // custom commission
+    customMonthlyFee: 79,
+    customCommissionPercentage: 5,
     logoUrl: "emblem_cross",
-    specialties: ["Fitness", "Musculación", "Fisioterapia", "Rehabilitación deportiva"],
+    specialties: ["Entrenamiento Funcional", "Musculación", "CrossFit", "Kinesiología"],
     locations: [
       {
         id: "loc-5",
-        name: "MegaGimnasio Sede La Banda",
-        address: "Aristóbulo del Valle 240, La Banda",
-        mapsUrl: "https://maps.google.com/?q=Aristobulo+del+Valle+240+La+Banda",
-        line2: "Instalación Deportiva",
-        phone: "0385-6443322",
-        observations: "Estacionamiento exclusivo para socios de Zuma.",
+        name: "Potenza Gym Central",
+        address: "Av. Belgrano Sur 1450, Santiago del Estero",
+        mapsUrl: "https://maps.google.com/?q=Av+Belgrano+Sur+1450+Santiago+del+Estero",
+        line2: "Planta Alta",
+        phone: "0385-5001122",
+        observations: "Acceso directo por ascensor o escaleras principales.",
         imageUrl: "emblem_cross"
+      }
+    ]
+  },
+  {
+    id: "patagonia-sde",
+    name: "Patagonia Refugio SDE",
+    category: "Gastronomía",
+    status: "active",
+    cuit: "23-28492049-9",
+    email: "santiago@refugiopatagonia.com.ar",
+    phone: "+5493854245678",
+    address: "Av. Belgrano Sur 2100, Santiago del Estero",
+    bio: "Refugio oficial de Cerveza Patagonia en Santiago del Estero. Cerveza tirada, gastronomía gourmet y patio cervecero.",
+    logoColor: "bg-rose-500",
+    joinedDate: "12/05/2026",
+    subscriptionPlan: "gold",
+    customMonthlyFee: null,
+    customCommissionPercentage: null,
+    logoUrl: "emblem_clinic",
+    specialties: ["Cerveza Tirada", "Hamburguesas", "Pizzas", "Eventos"],
+    locations: [
+      {
+        id: "loc-6",
+        name: "Refugio Patagonia SDE",
+        address: "Av. Belgrano Sur 2100, Santiago del Estero",
+        mapsUrl: "https://maps.google.com/?q=Av+Belgrano+Sur+2100+Santiago+del+Estero",
+        line2: "Patio y Terraza",
+        phone: "0385-4245678",
+        observations: "Abierto todos los días de 19:00 a 02:00 hs.",
+        imageUrl: "emblem_clinic"
       }
     ]
   }
@@ -311,7 +341,12 @@ export const mockDB = {
 
   // Partners list
   getPartners: (): Partner[] => {
-    return getDB("zuma_partners", INITIAL_PARTNERS);
+    const list = getDB("zuma_partners", INITIAL_PARTNERS);
+    if (list.some((p: any) => p.id === "megagimnasio-banda" || p.id === "la-casona-restaurante")) {
+      saveDB("zuma_partners", INITIAL_PARTNERS);
+      return INITIAL_PARTNERS;
+    }
+    return list;
   },
 
   savePartners: (partners: Partner[]) => {

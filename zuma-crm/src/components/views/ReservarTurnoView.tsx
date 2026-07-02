@@ -14,7 +14,11 @@ import {
   AlertCircle, 
   HelpCircle,
   FileText,
-  ShieldCheck
+  ShieldCheck,
+  Stethoscope,
+  Activity,
+  Heart,
+  TrendingUp
 } from "lucide-react";
 
 interface ReservarTurnoViewProps {
@@ -309,15 +313,16 @@ export default function ReservarTurnoView({
             <span className="text-[10px] font-bold text-slate-400">Sede: {selectedConsultorio}</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { id: "Consulta general", label: "Consulta general", desc: "Revisión clínica integral", cost: 30000 },
-              { id: "Electrocardiograma", label: "Electrocardiograma (ECG)", desc: "Estudio de ritmo cardíaco", cost: 24000 },
-              { id: "Ergometría", label: "Ergometría (Prueba Esfuerzo)", desc: "Control de estrés cardíaco", cost: 45000 },
-              { id: "Ecocardiograma", label: "Ecocardiograma", desc: "Imagen de ultrasonido", cost: 36000 }
+              { id: "Consulta general", label: "Consulta general", desc: "Revisión clínica habitual, control clínico general e historial.", cost: 30000, icon: Stethoscope, color: "from-blue-500 to-indigo-500" },
+              { id: "Electrocardiograma", label: "Electrocardiograma (ECG)", desc: "Estudio de actividad eléctrica del corazón. Rápido y no invasivo.", cost: 24000, icon: Activity, color: "from-teal-500 to-emerald-500" },
+              { id: "Ergometría", label: "Ergometría (Prueba Esfuerzo)", desc: "Evaluación cardíaca bajo esfuerzo físico controlado en cinta.", cost: 45000, icon: TrendingUp, color: "from-orange-500 to-red-500" },
+              { id: "Ecocardiograma", label: "Ecocardiograma", desc: "Ultrasonido del corazón para evaluar cavidades y válvulas.", cost: 36000, icon: Heart, color: "from-pink-500 to-rose-500" }
             ].map((p) => {
               const isAllowed = isStudyAllowed(selectedConsultorio, p.id);
               const isSelected = selectedEstudio === p.id;
+              const CardIcon = p.icon;
               
               return (
                 <div
@@ -328,21 +333,31 @@ export default function ReservarTurnoView({
                       setErrorMsg(null);
                     }
                   }}
-                  className={`bg-white border rounded-xl p-4.5 transition-all flex flex-col gap-1.5 relative
-                    ${!isAllowed ? "opacity-40 cursor-not-allowed border-slate-200" : "cursor-pointer hover:border-slate-300"}
-                    ${isSelected && isAllowed ? "ring-2 ring-primary border-primary shadow-sm" : "border-slate-200"}`}
+                  className={`bg-white border rounded-2xl p-5 transition-all duration-300 flex gap-4 relative select-none
+                    ${!isAllowed ? "opacity-35 cursor-not-allowed border-slate-200" : "cursor-pointer hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5"}
+                    ${isSelected && isAllowed ? "ring-2 ring-indigo-500 border-transparent shadow-sm bg-indigo-50/5" : "border-slate-200"}`}
                 >
-                  <div className="flex justify-between items-start gap-2">
-                    <h4 className="font-semibold text-slate-800 text-xs">{p.label}</h4>
-                    <span className="text-[10px] font-bold text-slate-600">${p.cost.toLocaleString("es-AR")}</span>
+                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${p.color} text-white flex items-center justify-center shrink-0 shadow-sm transition-transform duration-300 ${isSelected && isAllowed ? "scale-110" : ""}`}>
+                    <CardIcon className="w-5 h-5" />
                   </div>
-                  <p className="text-[10px] text-slate-400">{p.desc}</p>
                   
-                  {!isAllowed && (
-                    <span className="absolute bottom-2 right-2 text-[8px] bg-rose-50 border border-rose-200 text-rose-600 px-1.5 py-0.5 rounded font-bold">
-                      No disponible en esta sede
-                    </span>
-                  )}
+                  <div className="flex-1 flex flex-col justify-between min-w-0">
+                    <div>
+                      <div className="flex justify-between items-start gap-2">
+                        <h4 className="font-bold text-slate-800 text-xs leading-tight truncate">{p.label}</h4>
+                        <span className="text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md shrink-0">
+                          ${p.cost.toLocaleString("es-AR")}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1 leading-normal">{p.desc}</p>
+                    </div>
+                    
+                    {!isAllowed && (
+                      <span className="absolute bottom-2 right-2 text-[8px] bg-rose-50 border border-rose-200 text-rose-600 px-1.5 py-0.5 rounded font-bold">
+                        No disponible en esta sede
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}

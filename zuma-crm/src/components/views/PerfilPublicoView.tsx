@@ -146,6 +146,9 @@ export default function PerfilPublicoView() {
     .filter(s => s.length > 0);
 
   const getEmblemIcon = (key: string) => {
+    if (key.startsWith("data:image/") || key.startsWith("http")) {
+      return <img src={key} alt="Logo" className="w-full h-full object-cover rounded-xl" />;
+    }
     if (key === "emblem_doctor") return <Stethoscope className="w-5 h-5" />;
     if (key === "emblem_heart") return <Heart className="w-5 h-5" />;
     if (key === "emblem_cross") return <Activity className="w-5 h-5" />;
@@ -259,33 +262,40 @@ export default function PerfilPublicoView() {
             <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Diseño Visual de Ficha</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Emblem Selection */}
+              {/* Image Uploader widget */}
               <div className="flex flex-col gap-2">
-                <label className="text-[9px] font-bold text-slate-500 uppercase">Icono del Logotipo</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { key: "emblem_doctor", icon: Stethoscope, label: "Esteto" },
-                    { key: "emblem_clinic", icon: Building2, label: "Centro" },
-                    { key: "emblem_heart", icon: Heart, label: "Corazón" },
-                    { key: "emblem_cross", icon: Activity, label: "Cruz" }
-                  ].map((emb) => {
-                    const EmbIcon = emb.icon;
-                    const isSelected = logoUrl === emb.key;
-                    return (
-                      <button
-                        key={emb.key}
-                        type="button"
-                        onClick={() => setLogoUrl(emb.key)}
-                        className={`py-2 px-1 border rounded-xl flex flex-col items-center gap-1 cursor-pointer transition-all
-                          ${isSelected 
-                            ? "bg-slate-50 border-indigo-500 text-indigo-600 shadow-sm font-semibold" 
-                            : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"}`}
-                      >
-                        <EmbIcon className="w-4 h-4" />
-                        <span className="text-[8px] font-medium leading-none">{emb.label}</span>
-                      </button>
-                    );
-                  })}
+                <label className="text-[9px] font-bold text-slate-500 uppercase">Logotipo de la Ficha (Imagen)</label>
+                <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                  <div className={`w-12 h-12 rounded-xl ${logoColor} text-white flex items-center justify-center shadow-sm shrink-0 overflow-hidden relative border border-slate-200/50`}>
+                    {getEmblemIcon(logoUrl)}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-350 text-[10px] font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-colors inline-block text-center text-slate-700 shadow-sm">
+                      Subir Imagen
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setLogoUrl(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setLogoUrl("emblem_doctor")}
+                      className="text-[8px] text-slate-400 hover:text-slate-600 underline text-left"
+                    >
+                      Restablecer por Defecto
+                    </button>
+                  </div>
                 </div>
               </div>
 

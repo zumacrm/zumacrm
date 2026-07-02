@@ -268,6 +268,9 @@ export default function Home() {
   };
 
   const getPartnerEmblemIcon = (key: string) => {
+    if (key.startsWith("data:image/") || key.startsWith("http")) {
+      return <img src={key} alt="Logo" className="w-full h-full object-cover rounded-lg" />;
+    }
     if (key === "emblem_doctor") return <Stethoscope className="w-3.5 h-3.5" />;
     if (key === "emblem_heart") return <Heart className="w-3.5 h-3.5" />;
     if (key === "emblem_cross") return <Activity className="w-3.5 h-3.5" />;
