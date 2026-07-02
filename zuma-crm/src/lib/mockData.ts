@@ -225,6 +225,126 @@ const INITIAL_PARTNERS: Partner[] = [
         imageUrl: "emblem_clinic"
       }
     ]
+  },
+  {
+    id: "bar-lugones",
+    name: "Lugones Bar & Resto",
+    category: "Gastronomía",
+    status: "active",
+    cuit: "20-44930291-7",
+    email: "contacto@barlugones.com.ar",
+    phone: "+5493854271122",
+    address: "Av. Lugones y Besares, La Banda",
+    bio: "Bar y restaurante temático en La Banda. Gastronomía regional, coctelería y shows musicales en vivo.",
+    logoColor: "bg-amber-600",
+    joinedDate: "18/05/2026",
+    subscriptionPlan: "bronze",
+    customMonthlyFee: null,
+    customCommissionPercentage: null,
+    logoUrl: "emblem_clinic",
+    specialties: ["Reserva de Mesas", "Eventos Privados", "Cenas", "Shows en Vivo"],
+    locations: [
+      {
+        id: "loc-7",
+        name: "Lugones La Banda",
+        address: "Besares 450, La Banda",
+        mapsUrl: "https://maps.google.com/?q=Besares+450+La+Banda",
+        line2: "Salón Principal y Terraza",
+        phone: "0385-4271122",
+        observations: "Abierto de jueves a domingos a partir de las 20 hs.",
+        imageUrl: "emblem_clinic"
+      }
+    ]
+  },
+  {
+    id: "instituto-dao",
+    name: "Instituto DAO",
+    category: "Educación y Formación",
+    status: "active",
+    cuit: "30-28193849-5",
+    email: "formacion@institutodao.com",
+    phone: "+5493854214433",
+    address: "Av. Belgrano Sur 720, Santiago del Estero",
+    bio: "Centro de capacitación integral, formación profesional y clases de desarrollo personal y marcial.",
+    logoColor: "bg-indigo-600",
+    joinedDate: "01/06/2026",
+    subscriptionPlan: "gold",
+    customMonthlyFee: null,
+    customCommissionPercentage: null,
+    logoUrl: "emblem_cross",
+    specialties: ["Cursos de Capacitación", "Clases de Artes Marciales", "Medicina China", "Talleres"],
+    locations: [
+      {
+        id: "loc-8",
+        name: "DAO Sede Central",
+        address: "Av. Belgrano Sur 720, Santiago del Estero",
+        mapsUrl: "https://maps.google.com/?q=Av+Belgrano+Sur+720+Santiago+del+Estero",
+        line2: "Piso 1, Aula A",
+        phone: "0385-4214433",
+        observations: "Inscripciones abiertas todo el año para cursos homologados.",
+        imageUrl: "emblem_cross"
+      }
+    ]
+  },
+  {
+    id: "cabanas-tafi",
+    name: "Cabañas Sendas del Tafí",
+    category: "Hotelería y Turismo",
+    status: "active",
+    cuit: "20-22119944-3",
+    email: "reservas@sendasdeltafi.com",
+    phone: "+5493867421010",
+    address: "Ruta Provincial 307 Km 60, Tafí del Valle, Tucumán",
+    bio: "Complejo de cabañas totalmente equipadas en el corazón de Tafí del Valle. Disfruta de la naturaleza y el descanso.",
+    logoColor: "bg-emerald-600",
+    joinedDate: "22/04/2026",
+    subscriptionPlan: "platinum",
+    customMonthlyFee: 120,
+    customCommissionPercentage: 7,
+    logoUrl: "emblem_heart",
+    specialties: ["Alquiler de Cabañas", "Pensión Completa", "Excursiones", "Cabalgatas"],
+    locations: [
+      {
+        id: "loc-9",
+        name: "Complejo Tafí del Valle",
+        address: "Ruta Provincial 307 Km 60, Tafí del Valle, Tucumán",
+        mapsUrl: "https://maps.google.com/?q=Ruta+Provincial+307+Tafi+del+Valle+Tucuman",
+        line2: "Cabaña Principal",
+        phone: "03867-421010",
+        observations: "Se requiere reserva previa con 50% de seña para confirmar estadía.",
+        imageUrl: "emblem_heart"
+      }
+    ]
+  },
+  {
+    id: "flores-odontologia",
+    name: "Flores Odontología Integral",
+    category: "Salud y Odontología",
+    status: "active",
+    cuit: "20-28192839-4",
+    email: "odontoflores@gmail.com",
+    phone: "+5493854229988",
+    address: "Libertad 340, Santiago del Estero",
+    bio: "Clínica de odontología integral y estética dental en Santiago del Estero. Dr. Lucas Flores y equipo.",
+    logoColor: "bg-teal-500",
+    joinedDate: "10/05/2026",
+    subscriptionPlan: "gold",
+    customMonthlyFee: null,
+    customCommissionPercentage: null,
+    logoUrl: "emblem_doctor",
+    specialties: ["Implantes Dentales", "Ortodoncia", "Estética Dental", "Blanqueamiento"],
+    locations: [
+      {
+        id: "loc-10",
+        name: "Consultorio Libertad",
+        address: "Libertad 340, Santiago del Estero",
+        mapsUrl: "https://maps.google.com/?q=Libertad+340+Santiago+del+Estero",
+        line2: "Planta Baja, Consultorio A",
+        phone: "0385-4229988",
+        observations: "Atención con turnos programados y prepagas selectas.",
+        imageUrl: "emblem_doctor"
+      }
+    ]
   }
 ];
 
@@ -342,7 +462,7 @@ export const mockDB = {
   // Partners list
   getPartners: (): Partner[] => {
     const list = getDB("zuma_partners", INITIAL_PARTNERS);
-    if (list.some((p: any) => p.id === "megagimnasio-banda" || p.id === "la-casona-restaurante")) {
+    if (list.some((p: any) => p.id === "megagimnasio-banda") || !list.some((p: any) => p.id === "bar-lugones")) {
       saveDB("zuma_partners", INITIAL_PARTNERS);
       return INITIAL_PARTNERS;
     }

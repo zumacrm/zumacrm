@@ -33,7 +33,11 @@ export default function PacienteDashboardView({ onSelectPartner }: PacienteDashb
     "Cardiología",
     "Clínicas",
     "Laboratorios",
-    "Gimnasio y Fitness"
+    "Gimnasio y Fitness",
+    "Gastronomía",
+    "Educación",
+    "Hotelería y Turismo",
+    "Salud y Odontología"
   ];
 
   // Helper to render beautiful category logos
@@ -73,6 +77,10 @@ export default function PacienteDashboardView({ onSelectPartner }: PacienteDashb
     if (selectedCategory === "Clínicas" && (catLower.includes("clínica") || catLower.includes("sanatorio"))) return matchesSearch;
     if (selectedCategory === "Laboratorios" && catLower.includes("análisis")) return matchesSearch;
     if (selectedCategory === "Gimnasio y Fitness" && catLower.includes("gimnasio")) return matchesSearch;
+    if (selectedCategory === "Gastronomía" && (catLower.includes("gastronomía") || catLower.includes("cervecería") || catLower.includes("bar"))) return matchesSearch;
+    if (selectedCategory === "Educación" && (catLower.includes("educación") || catLower.includes("formación") || catLower.includes("instituto"))) return matchesSearch;
+    if (selectedCategory === "Hotelería y Turismo" && (catLower.includes("hotelería") || catLower.includes("turismo") || catLower.includes("cabaña"))) return matchesSearch;
+    if (selectedCategory === "Salud y Odontología" && (catLower.includes("odontología") || catLower.includes("salud") || catLower.includes("dentista"))) return matchesSearch;
     
     return false;
   });
