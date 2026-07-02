@@ -90,11 +90,11 @@ export default function PacienteDashboardView({ onSelectPartner }: PacienteDashb
       <div className="bg-gradient-to-r from-indigo-900 to-slate-900 text-white rounded-2xl p-6 md:p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span className="text-[9px] font-bold bg-indigo-500/30 text-indigo-200 border border-indigo-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-            Portal de Pacientes
+            Portal de Reservas
           </span>
-          <h2 className="text-xl font-bold font-display mt-2">¿Con quién deseas reservar tu turno hoy?</h2>
+          <h2 className="text-xl font-bold font-display mt-2">¿Qué deseas reservar hoy?</h2>
           <p className="text-xs text-slate-300 mt-1 max-w-lg leading-relaxed">
-            Busca profesionales, laboratorios de diagnóstico y centros deportivos asociados a ZUMA. Reserva tu cita en segundos.
+            Encuentra profesionales, centros de formación, gastronomía, cabañas de turismo, gimnasios y laboratorios asociados a ZUMA. Reserva tu turno en segundos.
           </p>
         </div>
         <div className="flex items-center gap-2 bg-white/10 border border-white/10 px-3.5 py-1.5 rounded-xl text-xs backdrop-blur-sm shadow-inner shrink-0">
