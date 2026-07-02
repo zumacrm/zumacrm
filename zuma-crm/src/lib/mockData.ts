@@ -345,6 +345,96 @@ const INITIAL_PARTNERS: Partner[] = [
         imageUrl: "emblem_doctor"
       }
     ]
+  },
+  {
+    id: "sanatorio-central-banda",
+    name: "Sanatorio Central Banda",
+    category: "Clínicas",
+    status: "active",
+    cuit: "30-49204910-8",
+    email: "contacto@sanatoriocentralbanda.com",
+    phone: "+5493854221100",
+    address: "España 150, La Banda",
+    bio: "Sanatorio de alta complejidad médica en la ciudad de La Banda. Guardia 24 horas y consultorios externos.",
+    logoColor: "bg-blue-500",
+    joinedDate: "15/02/2026",
+    subscriptionPlan: "platinum",
+    customMonthlyFee: null,
+    customCommissionPercentage: null,
+    logoUrl: "emblem_clinic",
+    specialties: ["Guardia 24hs", "Consultorios Externos", "Internación", "Cardiología"],
+    locations: [
+      {
+        id: "loc-sanatorio-banda",
+        name: "Sanatorio Central Banda",
+        address: "España 150, La Banda",
+        mapsUrl: "https://maps.google.com/?q=Sanatorio+Central+Banda+La+Banda",
+        line2: "Planta Baja, Recepción Principal",
+        phone: "0385-4221100",
+        observations: "Ingreso de guardia de emergencias por calle España.",
+        imageUrl: "emblem_clinic"
+      }
+    ]
+  },
+  {
+    id: "clinica-del-pilar",
+    name: "Clínica Del Pilar SDE",
+    category: "Clínicas",
+    status: "active",
+    cuit: "30-58204930-9",
+    email: "info@clinicadelpilar.com",
+    phone: "+5493854212121",
+    address: "Pellegrini 350, Santiago del Estero",
+    bio: "Clínica de especialidades médicas y cirugías programadas en el centro de Santiago del Estero.",
+    logoColor: "bg-indigo-500",
+    joinedDate: "18/03/2026",
+    subscriptionPlan: "gold",
+    customMonthlyFee: null,
+    customCommissionPercentage: null,
+    logoUrl: "emblem_clinic",
+    specialties: ["Cirugías", "Internación", "Consultorios", "Traumatología"],
+    locations: [
+      {
+        id: "loc-clinica-pilar",
+        name: "Clínica Del Pilar",
+        address: "Pellegrini 350, Santiago del Estero",
+        mapsUrl: "https://maps.google.com/?q=Clinica+Del+Pilar+Santiago+del+Estero",
+        line2: "Pellegrini 350",
+        phone: "0385-4212121",
+        observations: "Anunciarse en recepción de Planta Baja antes de ingresar.",
+        imageUrl: "emblem_clinic"
+      }
+    ]
+  },
+  {
+    id: "centro-medico-cannon",
+    name: "Centro Médico Cannon",
+    category: "Clínicas",
+    status: "active",
+    cuit: "30-50204910-1",
+    email: "cannon@centromedico.com",
+    phone: "+5493854241010",
+    address: "Av. Belgrano Sur 800, Santiago",
+    bio: "Centro médico integral de atención ambulatoria y estudios complementarios en Santiago del Estero.",
+    logoColor: "bg-teal-500",
+    joinedDate: "01/04/2026",
+    subscriptionPlan: "bronze",
+    customMonthlyFee: null,
+    customCommissionPercentage: null,
+    logoUrl: "emblem_clinic",
+    specialties: ["Estudios Médicos", "Ecografías", "Odontología", "Cardiología"],
+    locations: [
+      {
+        id: "loc-centro-cannon",
+        name: "Centro Médico Cannon",
+        address: "Av. Belgrano Sur 800, Santiago",
+        mapsUrl: "https://maps.google.com/?q=Centro+Medico+Cannon+Santiago+del+Estero",
+        line2: "Consultorio A, PB",
+        phone: "0385-4241010",
+        observations: "Atención programada de lunes a viernes.",
+        imageUrl: "emblem_clinic"
+      }
+    ]
   }
 ];
 
@@ -462,7 +552,7 @@ export const mockDB = {
   // Partners list
   getPartners: (): Partner[] => {
     const list = getDB("zuma_partners", INITIAL_PARTNERS);
-    if (list.some((p: any) => p.id === "megagimnasio-banda") || !list.some((p: any) => p.id === "bar-lugones")) {
+    if (list.some((p: any) => p.id === "megagimnasio-banda") || !list.some((p: any) => p.id === "sanatorio-central-banda")) {
       saveDB("zuma_partners", INITIAL_PARTNERS);
       return INITIAL_PARTNERS;
     }
