@@ -212,7 +212,6 @@ export default function Home() {
       case "patient_registered":
         return [
           { id: "dashboard", label: "Dashboard", icon: HomeIcon, desc: "Directorio de Socios" },
-          { id: "reservar", label: "Reservar", icon: Calendar, desc: "Solicitar turno o servicio" },
           { id: "historial", label: "Mis Reservas", icon: FileText, desc: "Gestionar reservas y señas" },
           { id: "paciente_perfil", label: "Profile", icon: UserIcon, desc: "Mi Información Personal" }
         ];
