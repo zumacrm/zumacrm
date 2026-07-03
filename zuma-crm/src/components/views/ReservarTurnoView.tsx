@@ -155,38 +155,33 @@ export default function ReservarTurnoView({
     const clinic = clinics.find(c => c.name === selectedConsultorio);
     if (!clinic) return [];
 
-    let current = new Date();
-    // Add dates for the next 14 days
-    for (let i = 1; i <= 14; i++) {
-      const nextDate = addDays(current, i);
-      const dayOfWeek = nextDate.getDay(); // 0 is Sunday, 1 is Monday, etc.
-      if (clinic.allowedDays.includes(dayOfWeek)) {
-        options.push(nextDate);
+    const allowed = clinic.allowedDays;
+    let current = addDays(new Date(), 1);
+    
+    while (options.length < 12) {
+      if (allowed.includes(current.getDay())) {
+        options.push(current);
       }
+      current = addDays(current, 1);
     }
     return options;
   };
 
-  // Static hourly slots for the chosen day
+  // Generate slots for the selected date
   const getSlots = () => {
-    const list = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"];
+    if (!selectedConsultorio || !selectedDate) return [];
     
-    // Filter out already taken slots in mockDB
-    const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const taken = mockDB.getTurnos()
-      .filter(t => t.fecha === dateStr && t.consultorio === selectedConsultorio && t.estado_turno !== "CANCELADO_PACIENTE" && t.estado_turno !== "CANCELADO_MEDICO")
-      .map(t => t.hora_inicio);
-
-    return list.map(slot => ({
+    // Static hours listing
+    return ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "15:00", "15:30", "16:00", "16:30"].map(slot => ({
       time: slot,
-      isBooked: taken.includes(slot)
+      isBooked: false
     }));
   };
 
   // Step 1 check
   const handleNextStep1 = () => {
     if (!selectedConsultorio) {
-      setErrorMsg("Debe elegir un lugar de atención");
+      setErrorMsg("Debes seleccionar una sede");
       return;
     }
     setErrorMsg(null);
@@ -195,24 +190,18 @@ export default function ReservarTurnoView({
 
   // Step 2 check
   const handleNextStep2 = () => {
-    if (!isStudyAllowed(selectedConsultorio, selectedEstudio)) {
-      setErrorMsg(`El centro ${selectedConsultorio} no realiza ${selectedEstudio}`);
+    if (!selectedEstudio) {
+      setErrorMsg("Debes seleccionar un servicio o práctica");
       return;
     }
     setErrorMsg(null);
-    
-    // Default selectedDate to first available clinic date if current selectedDate is invalid
-    const dates = getDateOptions();
-    if (dates.length > 0) {
-      setSelectedDate(dates[0]);
-    }
     setStep(3);
   };
 
   // Step 3 check
   const handleNextStep3 = () => {
     if (!selectedHora) {
-      setErrorMsg("Debe seleccionar un horario");
+      setErrorMsg("Debes seleccionar un horario");
       return;
     }
     setErrorMsg(null);
@@ -222,15 +211,13 @@ export default function ReservarTurnoView({
   // Confirm booking & register patient
   const handleConfirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regForm.dni || !regForm.nombre || !regForm.apellido) {
-      setErrorMsg("Por favor, complete todos los campos obligatorios");
+    if (!currentPatient && (!regForm.nombre || !regForm.apellido || !regForm.dni)) {
+      setErrorMsg("Completa los datos obligatorios para continuar");
       return;
     }
 
-    // Cost mapping
-    const cost = selectedEstudio === "Ergometría" ? 45000 : 
-                 selectedEstudio === "Electrocardiograma" ? 24000 : 
-                 selectedEstudio === "Ecocardiograma" ? 36000 : 30000;
+    const currentSrv = availableServices.find(s => s.id === selectedEstudio);
+    const cost = currentSrv ? currentSrv.cost : 30000;
 
     // Call registration prop to update parent session
     if (!currentPatient) {
@@ -289,7 +276,7 @@ export default function ReservarTurnoView({
       <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex items-center justify-between gap-2 overflow-x-auto">
         {[
           { label: "1. Lugar", active: step >= 1 },
-          { label: "2. Práctica", active: step >= 2 },
+          { label: "2. Servicio", active: step >= 2 },
           { label: "3. Horario", active: step >= 3 },
           { label: "4. Confirmar", active: step >= 4 }
         ].map((s, idx) => (
@@ -303,18 +290,12 @@ export default function ReservarTurnoView({
         ))}
       </div>
 
-      {errorMsg && (
-        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2 animate-shake">
-          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-
       {/* STEP 1: SELECT CLINIC LOCATION */}
       {step === 1 && (
         <div className="flex flex-col gap-4">
-          <h3 className="font-semibold text-slate-700 text-sm">Paso 1: ¿Dónde deseas atenderte?</h3>
-          <div className="flex flex-col gap-3">
+          <h3 className="font-semibold text-slate-700 text-sm">Paso 1: Selecciona la ubicación o sucursal</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {clinics.map((c) => {
               const isSelected = selectedConsultorio === c.name;
               return (
@@ -324,32 +305,41 @@ export default function ReservarTurnoView({
                     setSelectedConsultorio(c.name);
                     setErrorMsg(null);
                   }}
-                  className={`bg-white border rounded-xl p-4.5 cursor-pointer transition-all hover:border-slate-300 flex justify-between items-center gap-4
-                    ${isSelected ? "ring-2 ring-primary border-primary shadow-sm" : "border-slate-200"}`}
+                  className={`bg-white border rounded-2xl p-5 cursor-pointer transition-all duration-350 shadow-xs flex flex-col justify-between gap-4 select-none
+                    hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5
+                    ${isSelected ? "ring-2 ring-indigo-500 border-transparent shadow-sm bg-indigo-50/5" : "border-slate-200"}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isSelected ? "bg-teal-50 text-teal-600" : "bg-slate-50 text-slate-400"}`}>
-                      <Building2 className="w-4.5 h-4.5" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm ${isSelected ? "bg-indigo-600 scale-105" : "bg-[#0f172a]"}`}>
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <h4 className="font-bold text-slate-800 text-xs leading-snug">{c.name}</h4>
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-slate-800 text-xs">{c.name}</h4>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{c.address}</p>
-                    </div>
+                    <p className="text-[10px] text-slate-400 mt-3 font-semibold">{c.days}</p>
+                    <p className="text-[10px] text-slate-500 leading-normal mt-1">{c.address}</p>
                   </div>
-                  <span className="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded">
-                    {c.days}
-                  </span>
                 </div>
               );
             })}
           </div>
-          <button
-            onClick={handleNextStep1}
-            className="w-full bg-[#0f172a] hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow mt-2 cursor-pointer"
-          >
-            Siguiente Paso
-            <ChevronRight className="w-4 h-4" />
-          </button>
+
+          {errorMsg && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-rose-600 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4" />
+              {errorMsg}
+            </div>
+          )}
+
+          <div className="flex justify-end mt-2">
+            <button
+              onClick={handleNextStep1}
+              className="bg-[#0f172a] hover:bg-slate-800 text-white font-bold text-xs py-2 px-5 rounded-xl shadow cursor-pointer flex items-center gap-1 transition-colors"
+            >
+              Siguiente Paso
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -357,17 +347,12 @@ export default function ReservarTurnoView({
       {step === 2 && (
         <div className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
-            <h3 className="font-semibold text-slate-700 text-sm">Paso 2: Selecciona la práctica o estudio</h3>
+            <h3 className="font-semibold text-slate-700 text-sm">Paso 2: Selecciona el servicio o producto a reservar</h3>
             <span className="text-[10px] font-bold text-slate-400">Sede: {selectedConsultorio}</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { id: "Consulta general", label: "Consulta general", desc: "Revisión clínica habitual, control clínico general e historial.", cost: 30000, icon: Stethoscope, color: "from-blue-500 to-indigo-500" },
-              { id: "Electrocardiograma", label: "Electrocardiograma (ECG)", desc: "Estudio de actividad eléctrica del corazón. Rápido y no invasivo.", cost: 24000, icon: Activity, color: "from-teal-500 to-emerald-500" },
-              { id: "Ergometría", label: "Ergometría (Prueba Esfuerzo)", desc: "Evaluación cardíaca bajo esfuerzo físico controlado en cinta.", cost: 45000, icon: TrendingUp, color: "from-orange-500 to-red-500" },
-              { id: "Ecocardiograma", label: "Ecocardiograma", desc: "Ultrasonido del corazón para evaluar cavidades y válvulas.", cost: 36000, icon: Heart, color: "from-pink-500 to-rose-500" }
-            ].map((p) => {
+            {availableServices.map((p) => {
               const isAllowed = isStudyAllowed(selectedConsultorio, p.id);
               const isSelected = selectedEstudio === p.id;
               const CardIcon = p.icon;

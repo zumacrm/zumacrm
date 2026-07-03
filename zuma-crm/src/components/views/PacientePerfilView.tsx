@@ -74,7 +74,7 @@ export default function PacientePerfilView({ currentPatient, onUpdatePatient }: 
     return (
       <div className="max-w-md mx-auto bg-white border border-slate-200 p-8 rounded-2xl shadow-sm text-center flex flex-col items-center gap-4 animate-slide-in mt-6">
         <ShieldAlert className="w-12 h-12 text-slate-300 stroke-[1.2]" />
-        <h3 className="font-semibold text-slate-700 text-sm font-display">Perfil de Paciente</h3>
+        <h3 className="font-semibold text-slate-700 text-sm font-display">Perfil del Cliente</h3>
         <p className="text-xs text-slate-400 leading-normal">
           Aún no te has identificado en el sistema. Inicia una reserva de turno e ingresa tus datos en el último paso para registrar tu perfil.
         </p>
@@ -96,13 +96,13 @@ export default function PacientePerfilView({ currentPatient, onUpdatePatient }: 
           </h2>
           <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">DNI: {formData.dni} &bull; Prepaga: {formData.obraSocial}</span>
           <span className="text-[9px] font-bold text-teal-600 bg-teal-50 border border-teal-100 rounded px-1.5 py-0.5 mt-2.5 inline-block uppercase tracking-wider">
-            Sesión de Paciente Activa
+            Sesión de Cliente Activa
           </span>
         </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5">Editar Datos del Paciente</h3>
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5">Editar Datos del Cliente</h3>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Avatar Selector Grid */}

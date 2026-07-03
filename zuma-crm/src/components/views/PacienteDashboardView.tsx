@@ -10,7 +10,12 @@ import {
   Activity, 
   Building2, 
   Sparkles,
-  Stethoscope
+  Stethoscope,
+  Compass,
+  Dumbbell,
+  Utensils,
+  Map,
+  GraduationCap
 } from "lucide-react";
 
 interface PacienteDashboardViewProps {
@@ -19,8 +24,8 @@ interface PacienteDashboardViewProps {
 
 export default function PacienteDashboardView({ onSelectPartner }: PacienteDashboardViewProps) {
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
 
   useEffect(() => {
     // Only display active partners
@@ -38,6 +43,17 @@ export default function PacienteDashboardView({ onSelectPartner }: PacienteDashb
     "Profesionales",
     "Cursos"
   ];
+
+  const categoryMetadata: { [cat: string]: { icon: any, color: string, activeBg: string } } = {
+    "Todos": { icon: Compass, color: "text-slate-500 border-slate-200 hover:bg-slate-50", activeBg: "bg-slate-800 border-slate-800 text-white" },
+    "Clínicas": { icon: Building2, color: "text-blue-600 border-blue-100 bg-blue-50/20 hover:bg-blue-50/50", activeBg: "bg-blue-600 border-blue-600 text-white" },
+    "Laboratorios": { icon: Activity, color: "text-emerald-600 border-emerald-100 bg-emerald-50/20 hover:bg-emerald-50/50", activeBg: "bg-emerald-600 border-emerald-600 text-white" },
+    "Gimnasios": { icon: Dumbbell, color: "text-orange-600 border-orange-100 bg-orange-50/20 hover:bg-orange-50/50", activeBg: "bg-orange-600 border-orange-600 text-white" },
+    "Restaurantes": { icon: Utensils, color: "text-rose-600 border-rose-100 bg-rose-50/20 hover:bg-rose-50/50", activeBg: "bg-rose-600 border-rose-600 text-white" },
+    "Agencias de viaje": { icon: Map, color: "text-amber-600 border-amber-100 bg-amber-50/20 hover:bg-amber-50/50", activeBg: "bg-amber-600 border-amber-600 text-white" },
+    "Profesionales": { icon: Stethoscope, color: "text-teal-600 border-teal-100 bg-teal-50/20 hover:bg-teal-50/50", activeBg: "bg-teal-600 border-teal-600 text-white" },
+    "Cursos": { icon: GraduationCap, color: "text-indigo-600 border-indigo-100 bg-indigo-50/20 hover:bg-indigo-50/50", activeBg: "bg-indigo-600 border-indigo-600 text-white" }
+  };
 
   // Helper to render beautiful category logos
   const renderEmblem = (logoUrl: string | null, color: string) => {
@@ -107,18 +123,21 @@ export default function PacienteDashboardView({ onSelectPartner }: PacienteDashb
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
         
         {/* Category switcher */}
-        <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           {categories.map((cat) => {
             const isActive = selectedCategory === cat;
+            const meta = categoryMetadata[cat] || { icon: Sparkles, color: "text-slate-500 border-slate-200 hover:bg-slate-50", activeBg: "bg-slate-800 border-slate-800 text-white" };
+            const IconComponent = meta.icon;
+            
             return (
               <button
                 key={cat}
+                type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`text-[11px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap border transition-all cursor-pointer
-                  ${isActive 
-                    ? "bg-slate-800 border-slate-800 text-white shadow-sm" 
-                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"}`}
+                className={`text-[11px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap border transition-all cursor-pointer flex items-center gap-1.5
+                  ${isActive ? meta.activeBg : meta.color}`}
               >
+                <IconComponent className="w-3.5 h-3.5 shrink-0" />
                 {cat}
               </button>
             );

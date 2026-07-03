@@ -62,14 +62,14 @@ const AVAILABLE_AVATARS = [
 ];
 
 export default function Home() {
-  const [role, setRole] = useState<Role>("superadmin");
-  const [activeTab, setActiveTab] = useState<string>("inicio");
+  const [role, setRole] = useState<Role>("patient_guest");
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [searchText, setSearchText] = useState("");
   
   // Lock screen authorization states
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(true);
   const [accessCode, setAccessCode] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -97,6 +97,10 @@ export default function Home() {
           if (savedRole === "partner") setActiveTab("agenda");
           if (savedRole === "patient_guest" || savedRole === "patient_registered") setActiveTab("dashboard");
         }
+      } else {
+        setIsUnlocked(true);
+        setRole("patient_guest");
+        setActiveTab("dashboard");
       }
     }
   }, []);
@@ -351,7 +355,7 @@ export default function Home() {
           <div className="text-[10px] text-slate-600 leading-normal flex flex-col gap-1 text-left">
             <p>&bull; Administrador: ingresar <code className="text-slate-400 font-mono">Arq</code></p>
             <p>&bull; Médico: ingresar <code className="text-slate-400 font-mono">jensen</code></p>
-            <p>&bull; Paciente: ingresar <code className="text-slate-400 font-mono">paciente</code></p>
+            <p>&bull; Cliente: ingresar <code className="text-slate-400 font-mono">paciente</code></p>
           </div>
         </div>
       </div>
@@ -513,7 +517,7 @@ export default function Home() {
                   <span className="text-[11px] font-bold text-white leading-none truncate">
                     {role === "superadmin" && "ZUMA Admin"}
                     {role === "partner" && partnerName}
-                    {role === "patient_guest" && "Paciente Invitado"}
+                    {role === "patient_guest" && "Cliente Invitado"}
                     {role === "patient_registered" && `${patientSession?.nombre} ${patientSession?.apellido}`}
                   </span>
                   <span className="text-[9px] font-medium text-slate-500 mt-1 truncate">
@@ -561,7 +565,7 @@ export default function Home() {
                 {activeTab === "reservas_admin" && "Administración de Reservas"}
                 {activeTab === "config" && "Configuración"}
                 {activeTab === "facturacion" && (role === "superadmin" ? "Suscripciones Globales" : "Mi Facturación")}
-                {activeTab === "dashboard" && "Dashboard Paciente"}
+                {activeTab === "dashboard" && "Dashboard Clientes"}
                 {activeTab === "reservar" && "Reserva Online"}
                 {activeTab === "ubicaciones" && "Ubicaciones"}
                 {activeTab === "historial" && "Mis Reservas"}
@@ -581,8 +585,8 @@ export default function Home() {
               >
                 <option value="superadmin">👑 ZUMA SuperAdmin</option>
                 <option value="partner">🏥 Socio: Dr. Carlos Jensen</option>
-                <option value="patient_guest">👤 Paciente Invitado</option>
-                <option value="patient_registered">👤🔑 Paciente: Roberto Sosa</option>
+                <option value="patient_guest">👤 Cliente Invitado</option>
+                <option value="patient_registered">👤🔑 Cliente: Roberto Sosa</option>
               </select>
             </div>
 
@@ -594,7 +598,7 @@ export default function Home() {
                 {role === "superadmin" && "SuperAdmin"}
                 {role === "partner" && "Socio"}
                 {role === "patient_guest" && "Invitado"}
-                {role === "patient_registered" && "Paciente"}
+                {role === "patient_registered" && "Cliente"}
               </span>
             </div>
           </div>
