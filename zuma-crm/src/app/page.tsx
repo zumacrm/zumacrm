@@ -36,6 +36,8 @@ import PacienteDashboardView from "@/components/views/PacienteDashboardView";
 import PacientePerfilView from "@/components/views/PacientePerfilView";
 import PacienteUbicacionesView from "@/components/views/PacienteUbicacionesView";
 import SaaSConfigView from "@/components/views/SaaSConfigView";
+import PartnerStatsView from "@/components/views/PartnerStatsView";
+import PartnerReservasAdminView from "@/components/views/PartnerReservasAdminView";
 import { mockDB } from "@/lib/mockData";
 
 type Role = "superadmin" | "partner" | "patient_guest" | "patient_registered";
@@ -216,8 +218,10 @@ export default function Home() {
         return [
           { id: "agenda", label: "Dashboard", icon: LayoutDashboard, desc: "Mi Agenda de Turnos" },
           { id: "perfil", label: "Profile", icon: UserIcon, desc: "Mi Perfil Público" },
+          { id: "estadisticas", label: "Estadísticas", icon: BarChart2, desc: "Rendimiento y Contabilidad" },
+          { id: "reservas_admin", label: "Administrar", icon: FileText, desc: "Gestión Completa de Reservas" },
           { id: "config", label: "Settings", icon: SettingsIcon, desc: "Configuración Admin" },
-          { id: "facturacion", label: "Subscription", icon: BarChart2, desc: "Abonos y Facturas" }
+          { id: "facturacion", label: "Subscription", icon: Layers, desc: "Abonos y Facturas" }
         ];
       case "patient_guest":
       case "patient_registered":
@@ -244,6 +248,10 @@ export default function Home() {
         return <AgendaView />;
       case "perfil":
         return <PerfilPublicoView />;
+      case "estadisticas":
+        return <PartnerStatsView partnerId="dr-carlos-jensen" />;
+      case "reservas_admin":
+        return <PartnerReservasAdminView partnerId="dr-carlos-jensen" />;
       case "config":
         return <ConfiguracionView />;
       case "facturacion":
@@ -549,6 +557,8 @@ export default function Home() {
                 {activeTab === "saas_config" && "SaaS Config"}
                 {activeTab === "agenda" && "Mi Agenda"}
                 {activeTab === "perfil" && "Mi Perfil Público"}
+                {activeTab === "estadisticas" && "Estadísticas de Socio"}
+                {activeTab === "reservas_admin" && "Administración de Reservas"}
                 {activeTab === "config" && "Configuración"}
                 {activeTab === "facturacion" && (role === "superadmin" ? "Suscripciones Globales" : "Mi Facturación")}
                 {activeTab === "dashboard" && "Dashboard Paciente"}
