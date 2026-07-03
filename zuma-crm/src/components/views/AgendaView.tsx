@@ -22,9 +22,24 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  FileText
+  FileText,
+  MapPin
 } from "lucide-react";
-import { format, addDays, subDays, parseISO } from "date-fns";
+import { 
+  format, 
+  addDays, 
+  subDays, 
+  parseISO, 
+  startOfMonth, 
+  endOfMonth, 
+  startOfWeek, 
+  endOfWeek, 
+  eachDayOfInterval, 
+  isSameMonth, 
+  isSameDay, 
+  subMonths, 
+  addMonths 
+} from "date-fns";
 import { es } from "date-fns/locale";
 
 export default function AgendaView() {
@@ -32,6 +47,10 @@ export default function AgendaView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [turnos, setTurnos] = useState<MockTurno[]>([]);
   const [selectedTurno, setSelectedTurno] = useState<MockTurno | null>(null);
+  
+  // Custom states for view layout and locations dropdown filters
+  const [calendarViewMode, setCalendarViewMode] = useState<"day" | "month">("day");
+  const [selectedLocationFilter, setSelectedLocationFilter] = useState<string>("Todas");
   
   // Modals and notifications states
   const [showManualModal, setShowManualModal] = useState(false);
@@ -67,12 +86,20 @@ export default function AgendaView() {
     loadTurnos();
   }, []);
 
-  const handlePrevDay = () => {
-    setSelectedDate(prev => subDays(prev, 1));
+  const handlePrevPeriod = () => {
+    if (calendarViewMode === "day") {
+      setSelectedDate(prev => subDays(prev, 1));
+    } else {
+      setSelectedDate(prev => subMonths(prev, 1));
+    }
   };
 
-  const handleNextDay = () => {
-    setSelectedDate(prev => addDays(prev, 1));
+  const handleNextPeriod = () => {
+    if (calendarViewMode === "day") {
+      setSelectedDate(prev => addDays(prev, 1));
+    } else {
+      setSelectedDate(prev => addMonths(prev, 1));
+    }
   };
 
   const handleRunCron = () => {
@@ -153,16 +180,24 @@ export default function AgendaView() {
     });
   };
 
-  // Filter turnos for target day and search criteria
-  const formattedSelectedDate = format(selectedDate, "yyyy-MM-dd");
-  const dayTurnos = turnos.filter(t => t.fecha === formattedSelectedDate);
-  const filteredTurnos = dayTurnos.filter(t => {
+  // Dynamic list of locations from turnos database
+  const partnerLocations = Array.from(new Set(turnos.map(t => t.consultorio)));
+
+  // Filter turnos based on active branch location selection and search criteria
+  const baseFilteredTurnos = turnos.filter(t => {
+    const matchesLocation = selectedLocationFilter === "Todas" || t.consultorio === selectedLocationFilter;
     const query = searchQuery.toLowerCase();
-    return t.paciente.nombre.toLowerCase().includes(query) || 
-           t.paciente.apellido.toLowerCase().includes(query) || 
-           t.paciente.dni.includes(query) || 
-           t.tipo_estudio.toLowerCase().includes(query);
+    const matchesSearch = t.paciente.nombre.toLowerCase().includes(query) || 
+                          t.paciente.apellido.toLowerCase().includes(query) || 
+                          t.paciente.dni.includes(query) || 
+                          t.tipo_estudio.toLowerCase().includes(query);
+    return matchesLocation && matchesSearch;
   });
+
+  const formattedSelectedDate = format(selectedDate, "yyyy-MM-dd");
+  // Day turnos specifically
+  const dayTurnos = baseFilteredTurnos.filter(t => t.fecha === formattedSelectedDate);
+  const filteredTurnos = dayTurnos;
 
   // Calculate statistics for selected date
   const totalHoy = dayTurnos.length;
@@ -239,36 +274,79 @@ export default function AgendaView() {
       {/* Date controls and search */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
         {/* Date navigators */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <button 
-            onClick={handlePrevDay} 
+            onClick={handlePrevPeriod} 
             className="p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-500 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-2">
             <CalendarIcon className="w-4 h-4 text-primary" />
-            <span className="font-semibold text-slate-700 text-sm">
-              {format(selectedDate, "eeee dd 'de' MMMM, yyyy", { locale: es })}
+            <span className="font-bold text-slate-700 text-xs sm:text-sm whitespace-nowrap">
+              {calendarViewMode === "day" 
+                ? format(selectedDate, "eeee dd 'de' MMMM, yyyy", { locale: es })
+                : format(selectedDate, "MMMM 'de' yyyy", { locale: es })}
             </span>
           </div>
           <button 
-            onClick={handleNextDay} 
+            onClick={handleNextPeriod} 
             className="p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-500 cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
+        {/* View Switcher and Location Filter Dropdowns */}
+        <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
+          {/* Sede selector */}
+          <div className="flex items-center gap-1">
+            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <select
+              value={selectedLocationFilter}
+              onChange={(e) => {
+                setSelectedLocationFilter(e.target.value);
+                setSelectedTurno(null);
+              }}
+              className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-xl text-[10px] font-semibold text-slate-650 cursor-pointer focus:outline-none focus:border-primary"
+            >
+              <option value="Todas">Todas las sedes</option>
+              {partnerLocations.map(loc => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Day / Month switch control */}
+          <div className="bg-slate-100 border border-slate-200 rounded-xl p-0.5 flex items-center shrink-0">
+            <button
+              type="button"
+              onClick={() => setCalendarViewMode("day")}
+              className={`px-3 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all
+                ${calendarViewMode === "day" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              Día
+            </button>
+            <button
+              type="button"
+              onClick={() => setCalendarViewMode("month")}
+              className={`px-3 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all
+                ${calendarViewMode === "month" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              Mes
+            </button>
+          </div>
+        </div>
+
         {/* Search input */}
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="relative w-full md:w-64">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Buscar por paciente, DNI, estudio..."
+            placeholder="Buscar por paciente o DNI..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-primary bg-slate-50/50"
+            className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-primary bg-slate-50/50 text-slate-700 font-semibold"
           />
         </div>
       </div>
@@ -301,9 +379,97 @@ export default function AgendaView() {
       {/* Main split dashboard list + details drawer */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Booking slot list */}
+        {/* Booking slot list or Monthly Grid view */}
         <div className="lg:col-span-2 flex flex-col gap-3">
-          {filteredTurnos.length === 0 ? (
+          {calendarViewMode === "month" ? (
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Calendario Mensual de Reservas</h3>
+              
+              {/* Month calendar grid */}
+              <div className="grid grid-cols-7 gap-1 text-center font-bold text-[10px] text-slate-400 border-b border-slate-100 pb-2">
+                <span>LUN</span>
+                <span>MAR</span>
+                <span>MIÉ</span>
+                <span>JUE</span>
+                <span>VIE</span>
+                <span>SÁB</span>
+                <span>DOM</span>
+              </div>
+              
+              <div className="grid grid-cols-7 gap-1.5 mt-1">
+                {(() => {
+                  const monthStart = startOfMonth(selectedDate);
+                  const monthEnd = endOfMonth(monthStart);
+                  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+                  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+                  const daySheet = eachDayOfInterval({ start: startDate, end: endDate });
+                  
+                  return daySheet.map((day, idx) => {
+                    const dateStr = format(day, "yyyy-MM-dd");
+                    const isCurrentMonth = isSameMonth(day, selectedDate);
+                    const isSelected = isSameDay(day, selectedDate);
+                    const isToday = isSameDay(day, new Date());
+                    
+                    // Filter non-cancelled appointments for this day
+                    const cellTurnos = baseFilteredTurnos.filter(t => 
+                      t.fecha === dateStr && 
+                      t.estado_turno !== "CANCELADO_PACIENTE" && 
+                      t.estado_turno !== "CANCELADO_MEDICO"
+                    );
+                    
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setSelectedDate(day);
+                          // Auto switch view to day agenda
+                          setCalendarViewMode("day");
+                        }}
+                        className={`min-h-[70px] p-2 border border-slate-100 rounded-xl transition-all flex flex-col justify-between cursor-pointer select-none hover:bg-slate-50/50 hover:border-indigo-200
+                          ${!isCurrentMonth ? "opacity-30" : ""}
+                          ${isToday ? "bg-teal-50/30 border-teal-200" : "bg-white"}
+                          ${isSelected ? "ring-2 ring-indigo-500 border-transparent shadow-sm bg-indigo-50/10" : ""}`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className={`text-[10px] font-bold ${isToday ? "text-teal-600 bg-teal-50 px-1 py-0.2 rounded" : "text-slate-650"}`}>
+                            {format(day, "d")}
+                          </span>
+                          {cellTurnos.length > 0 && (
+                            <span className="text-[8px] font-extrabold text-white bg-indigo-600 px-1 py-0.2 rounded shadow-sm">
+                              {cellTurnos.length}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Cell indicators list */}
+                        {cellTurnos.length > 0 && (
+                          <div className="mt-1 flex flex-col gap-0.5 truncate text-left max-w-full overflow-hidden">
+                            {cellTurnos.slice(0, 2).map((turno) => {
+                              const isPre = turno.estado_turno === "PRE_RESERVADO";
+                              return (
+                                <div 
+                                  key={turno.id} 
+                                  className={`text-[7px] font-bold truncate rounded px-1 py-0.5
+                                    ${isPre ? "bg-amber-50 text-amber-600 border border-amber-100/50" : "bg-emerald-50 text-emerald-600 border border-emerald-100/50"}`}
+                                >
+                                  {turno.hora_inicio} {turno.paciente.nombre}
+                                </div>
+                              );
+                            })}
+                            {cellTurnos.length > 2 && (
+                              <span className="text-[6.5px] font-semibold text-slate-400 pl-0.5">
+                                +{cellTurnos.length - 2} más
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          ) : filteredTurnos.length === 0 ? (
             <div className="bg-white border border-slate-200 p-12 text-center rounded-2xl flex flex-col items-center gap-3">
               <CalendarIcon className="w-12 h-12 text-slate-300 stroke-[1.2]" />
               <h3 className="font-semibold text-slate-700 text-sm">Sin turnos agendados</h3>

@@ -463,64 +463,257 @@ const INITIAL_MEDICO_CONFIG: MedicoConfig = {
   }
 };
 
-const getPreloadedTurnos = (): MockTurno[] => {
-  const todayStr = format(new Date(), "yyyy-MM-dd");
-  const tomorrowStr = format(addDays(new Date(), 1), "yyyy-MM-dd");
+const studyCost = (estudio: string): number => {
+  if (estudio === "Ergometría") return 45000;
+  if (estudio === "Electrocardiograma") return 24000;
+  if (estudio === "Ecocardiograma") return 36000;
+  return 30000;
+};
 
-  return [
-    {
-      id: "turno-1",
-      paciente: {
-        dni: "20444333",
-        nombre: "Roberto",
-        apellido: "Sosa",
-        telefono: "+5493854111222",
-        email: "roberto.sosa@gmail.com",
-        obra_social: "OSDE"
-      },
-      fecha: todayStr,
-      hora_inicio: "09:00",
-      hora_fin: "09:30",
-      tipo_estudio: "Consulta general",
-      consultorio: "Sanatorio Central Banda",
-      estado_turno: "CONFIRMADO",
-      via_reserva: "WEB_PACIENTE",
-      creado_el: new Date().toISOString(),
-      expira_el: new Date().toISOString(),
-      pago: {
-        monto_total: 30000,
-        monto_pagado: 15000,
-        checkout_id: "pref_1a",
-        estado_pago: "APROBADO"
-      }
-    },
-    {
-      id: "turno-2",
-      paciente: {
-        dni: "20444333",
-        nombre: "Roberto",
-        apellido: "Sosa",
-        telefono: "+5493854111222",
-        email: "roberto.sosa@gmail.com",
-        obra_social: "OSDE"
-      },
-      fecha: todayStr,
-      hora_inicio: "10:30",
-      hora_fin: "11:00",
-      tipo_estudio: "Electrocardiograma",
-      consultorio: "Sanatorio Central Banda",
-      estado_turno: "PRE_RESERVADO",
-      via_reserva: "WEB_PACIENTE",
-      creado_el: new Date().toISOString(),
-      expira_el: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-      pago: {
-        monto_total: 24000,
-        monto_pagado: 0,
-        checkout_id: "pref_2b",
-        estado_pago: "PENDIENTE"
+const getPreloadedTurnos = (): MockTurno[] => {
+  const list: MockTurno[] = [];
+  const today = new Date();
+  const tomorrowStr = format(addDays(today, 1), "yyyy-MM-dd");
+  
+  // Patient names to choose from
+  const clients = [
+    { dni: "20444333", nombre: "Roberto", apellido: "Sosa", telefono: "+5493854111222", email: "roberto.sosa@gmail.com", obra_social: "OSDE" },
+    { dni: "30555666", nombre: "Ana", apellido: "Gómez", telefono: "+5493855333444", email: "ana.gomez@gmail.com", obra_social: "Particular" },
+    { dni: "18999888", nombre: "Pedro", apellido: "Martínez", telefono: "+5493854999000", email: "pedro.mtz@gmail.com", obra_social: "Swiss Medical" },
+    { dni: "40111222", nombre: "Sofía", apellido: "López", telefono: "+5493856111333", email: "sofia.lopez@yahoo.com", obra_social: "Particular" },
+    { dni: "28333444", nombre: "Carlos", apellido: "Rodríguez", telefono: "+5493855555666", email: "carlos.rod@hotmail.com", obra_social: "PAMI" },
+    { dni: "32777888", nombre: "Lucía", apellido: "Fernández", telefono: "+5493854888999", email: "lucia.fer@outlook.com", obra_social: "Particular" },
+    { dni: "25666777", nombre: "Martín", apellido: "Díaz", telefono: "+5493855111000", email: "martin.diaz@gmail.com", obra_social: "OSDE" },
+    { dni: "35444555", nombre: "María", apellido: "Álvarez", telefono: "+5493854555666", email: "maria.alvarez@gmail.com", obra_social: "Swiss Medical" }
+  ];
+
+  // 1. History (past 5 days) for stats
+  for (let dayOffset = -5; dayOffset < 0; dayOffset++) {
+    const targetDate = addDays(today, dayOffset);
+    const dateStr = format(targetDate, "yyyy-MM-dd");
+    
+    // 2 turnos per past day
+    for (let i = 0; i < 2; i++) {
+      const client = clients[(Math.abs(dayOffset) * 2 + i) % clients.length];
+      const hour = i === 0 ? "09:30" : "15:00";
+      const isAttended = i === 0; // first is attended, second is confirmed or cancelled
+      const estado = isAttended ? "ATENDIDO" : (dayOffset % 2 === 0 ? "CONFIRMADO" : "CANCELADO_PACIENTE");
+      const consultorio = i === 0 ? "Sanatorio Central Banda" : "Clínica Del Pilar";
+      const estudio = i === 0 ? "Consulta general" : "Electrocardiograma";
+      const cost = studyCost(estudio);
+      
+      list.push({
+        id: `hist-jensen-${dayOffset}-${i}`,
+        paciente: {
+          dni: client.dni,
+          nombre: client.nombre,
+          apellido: client.apellido,
+          telefono: client.telefono,
+          email: client.email,
+          obra_social: client.obra_social
+        },
+        fecha: dateStr,
+        hora_inicio: hour,
+        hora_fin: hour,
+        tipo_estudio: estudio,
+        consultorio: consultorio,
+        estado_turno: estado,
+        via_reserva: i === 0 ? "WEB_PACIENTE" : "MANUAL_PROFESIONAL",
+        creado_el: addDays(targetDate, -2).toISOString(),
+        expira_el: targetDate.toISOString(),
+        pago: {
+          monto_total: cost,
+          monto_pagado: estado === "CANCELADO_PACIENTE" ? 0 : cost / 2,
+          checkout_id: `pref_past_${dayOffset}_${i}`,
+          estado_pago: estado === "CANCELADO_PACIENTE" ? "RECHAZADO" : "APROBADO"
+        }
+      });
+    }
+  }
+
+  // 2. Today bookings for Dr. Carlos Jensen
+  const todayStr = format(today, "yyyy-MM-dd");
+  list.push({
+    id: "jensen-today-1",
+    paciente: clients[0],
+    fecha: todayStr,
+    hora_inicio: "09:00",
+    hora_fin: "09:30",
+    tipo_estudio: "Consulta general",
+    consultorio: "Sanatorio Central Banda",
+    estado_turno: "CONFIRMADO",
+    via_reserva: "WEB_PACIENTE",
+    creado_el: today.toISOString(),
+    expira_el: today.toISOString(),
+    pago: { monto_total: 30000, monto_pagado: 15000, checkout_id: "pref_t1", estado_pago: "APROBADO" }
+  });
+  list.push({
+    id: "jensen-today-2",
+    paciente: clients[1],
+    fecha: todayStr,
+    hora_inicio: "10:30",
+    hora_fin: "11:00",
+    tipo_estudio: "Electrocardiograma",
+    consultorio: "Sanatorio Central Banda",
+    estado_turno: "PRE_RESERVADO",
+    via_reserva: "WEB_PACIENTE",
+    creado_el: today.toISOString(),
+    expira_el: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    pago: { monto_total: 24000, monto_pagado: 0, checkout_id: "pref_t2", estado_pago: "PENDIENTE" }
+  });
+  list.push({
+    id: "jensen-today-3",
+    paciente: clients[2],
+    fecha: todayStr,
+    hora_inicio: "15:30",
+    hora_fin: "16:00",
+    tipo_estudio: "Ergometría",
+    consultorio: "Clínica Del Pilar",
+    estado_turno: "CONFIRMADO",
+    via_reserva: "MANUAL_PROFESIONAL",
+    creado_el: today.toISOString(),
+    expira_el: today.toISOString(),
+    pago: { monto_total: 45000, monto_pagado: 22500, checkout_id: "PAGA_EN_CONSULTORIO", estado_pago: "PENDIENTE" }
+  });
+
+  // 3. Tomorrow and future bookings for Dr. Carlos Jensen
+  for (let dayOffset = 1; dayOffset <= 7; dayOffset++) {
+    const targetDate = addDays(today, dayOffset);
+    const dateStr = format(targetDate, "yyyy-MM-dd");
+    
+    // Let's add 2 bookings on weekdays
+    const dayOfWeek = targetDate.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // no weekends
+      for (let i = 0; i < 2; i++) {
+        const client = clients[(dayOffset * 2 + i) % clients.length];
+        const hour = i === 0 ? "11:00" : "16:30";
+        const consultorio = i === 0 ? "Sanatorio Central Banda" : "Clínica Del Pilar";
+        const estudio = i === 0 ? "Consulta general" : "Ecocardiograma";
+        const cost = studyCost(estudio);
+        
+        list.push({
+          id: `future-jensen-${dayOffset}-${i}`,
+          paciente: {
+            dni: client.dni,
+            nombre: client.nombre,
+            apellido: client.apellido,
+            telefono: client.telefono,
+            email: client.email,
+            obra_social: client.obra_social
+          },
+          fecha: dateStr,
+          hora_inicio: hour,
+          hora_fin: hour,
+          tipo_estudio: estudio,
+          consultorio: consultorio,
+          estado_turno: "CONFIRMADO",
+          via_reserva: "WEB_PACIENTE",
+          creado_el: today.toISOString(),
+          expira_el: today.toISOString(),
+          pago: {
+            monto_total: cost,
+            monto_pagado: cost / 2,
+            checkout_id: `pref_fut_${dayOffset}_${i}`,
+            estado_pago: "APROBADO"
+          }
+        });
       }
     }
-  ];
+  }
+
+  // 4. Seeding bookings for other partners
+  // Biolab
+  list.push({
+    id: "biolab-1",
+    paciente: clients[3],
+    fecha: todayStr,
+    hora_inicio: "09:30",
+    hora_fin: "10:00",
+    tipo_estudio: "Análisis Clínicos",
+    consultorio: "Biolab Central",
+    estado_turno: "CONFIRMADO",
+    via_reserva: "WEB_PACIENTE",
+    creado_el: today.toISOString(),
+    expira_el: today.toISOString(),
+    pago: { monto_total: 12000, monto_pagado: 6000, checkout_id: "pref_bio1", estado_pago: "APROBADO" }
+  });
+  // Potenza Gym
+  list.push({
+    id: "potenza-1",
+    paciente: clients[4],
+    fecha: todayStr,
+    hora_inicio: "18:00",
+    hora_fin: "19:00",
+    tipo_estudio: "Entrenamiento Funcional",
+    consultorio: "Potenza Gym Central",
+    estado_turno: "CONFIRMADO",
+    via_reserva: "WEB_PACIENTE",
+    creado_el: today.toISOString(),
+    expira_el: today.toISOString(),
+    pago: { monto_total: 8000, monto_pagado: 4000, checkout_id: "pref_pot1", estado_pago: "APROBADO" }
+  });
+  // Patagonia
+  list.push({
+    id: "patagonia-1",
+    paciente: clients[5],
+    fecha: todayStr,
+    hora_inicio: "21:30",
+    hora_fin: "23:00",
+    tipo_estudio: "Hamburguesas",
+    consultorio: "Refugio Patagonia SDE",
+    estado_turno: "CONFIRMADO",
+    via_reserva: "WEB_PACIENTE",
+    creado_el: today.toISOString(),
+    expira_el: today.toISOString(),
+    pago: { monto_total: 22000, monto_pagado: 11000, checkout_id: "pref_pat1", estado_pago: "APROBADO" }
+  });
+  // Instituto Dao
+  list.push({
+    id: "dao-1",
+    paciente: clients[6],
+    fecha: todayStr,
+    hora_inicio: "17:00",
+    hora_fin: "19:00",
+    tipo_estudio: "Medicina China Nivel 1",
+    consultorio: "Sede Dao Banda",
+    estado_turno: "CONFIRMADO",
+    via_reserva: "WEB_PACIENTE",
+    creado_el: today.toISOString(),
+    expira_el: today.toISOString(),
+    pago: { monto_total: 40000, monto_pagado: 20000, checkout_id: "pref_dao1", estado_pago: "APROBADO" }
+  });
+  // Cabañas Tafí
+  list.push({
+    id: "cabanas-1",
+    paciente: clients[7],
+    fecha: tomorrowStr,
+    hora_inicio: "12:00",
+    hora_fin: "12:00",
+    tipo_estudio: "Cabaña Familiar 4 pers",
+    consultorio: "Complejo Cabañas Tafí",
+    estado_turno: "CONFIRMADO",
+    via_reserva: "WEB_PACIENTE",
+    creado_el: today.toISOString(),
+    expira_el: today.toISOString(),
+    pago: { monto_total: 95000, monto_pagado: 47500, checkout_id: "pref_cab1", estado_pago: "APROBADO" }
+  });
+  // Flores Odontología
+  list.push({
+    id: "flores-1",
+    paciente: clients[2],
+    fecha: tomorrowStr,
+    hora_inicio: "16:00",
+    hora_fin: "16:30",
+    tipo_estudio: "Limpieza Dental",
+    consultorio: "Consultorio Flores",
+    estado_turno: "CONFIRMADO",
+    via_reserva: "WEB_PACIENTE",
+    creado_el: today.toISOString(),
+    expira_el: today.toISOString(),
+    pago: { monto_total: 28000, monto_pagado: 14000, checkout_id: "pref_flo1", estado_pago: "APROBADO" }
+  });
+
+  return list;
 };
 
 const isBrowser = typeof window !== "undefined";
@@ -588,8 +781,15 @@ export const mockDB = {
   },
 
   // Turnos bookings list
+  // Turnos bookings list
   getTurnos: (): MockTurno[] => {
-    return getDB("zuma_turnos", getPreloadedTurnos());
+    const list = getDB("zuma_turnos", getPreloadedTurnos());
+    if (list.length < 15) {
+      const freshList = getPreloadedTurnos();
+      saveDB("zuma_turnos", freshList);
+      return freshList;
+    }
+    return list;
   },
 
   saveTurnos: (turnos: MockTurno[]) => {
