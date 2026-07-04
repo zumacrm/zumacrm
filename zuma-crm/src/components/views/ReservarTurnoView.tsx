@@ -18,7 +18,8 @@ import {
   Stethoscope,
   Activity,
   Heart,
-  TrendingUp
+  TrendingUp,
+  Compass
 } from "lucide-react";
 
 interface ReservarTurnoViewProps {
@@ -60,7 +61,7 @@ export default function ReservarTurnoView({
   });
   
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
+ 
   // Retrieve active partner details
   const activePartner = mockDB.getPartners().find(p => p.id === partnerId) || 
                         mockDB.getPartners().find(p => p.id === "dr-carlos-jensen") ||
@@ -107,6 +108,34 @@ export default function ReservarTurnoView({
             address: activePartner?.address || ""
           }
         ];
+
+  // Dynamic services list matching partner specialties
+  const availableServices = activePartner.id === "dr-carlos-jensen"
+    ? [
+        { id: "Consulta general", label: "Consulta general", desc: "Revisión clínica habitual, control clínico general e historial.", cost: 30000, icon: Stethoscope, color: "from-blue-500 to-indigo-500" },
+        { id: "Electrocardiograma", label: "Electrocardiograma (ECG)", desc: "Estudio de actividad eléctrica del corazón. Rápido y no invasivo.", cost: 24000, icon: Activity, color: "from-teal-500 to-emerald-500" },
+        { id: "Ergometría", label: "Ergometría (Prueba Esfuerzo)", desc: "Evaluación cardíaca bajo esfuerzo físico controlado en cinta.", cost: 45000, icon: TrendingUp, color: "from-orange-500 to-red-500" },
+        { id: "Ecocardiograma", label: "Ecocardiograma", desc: "Ultrasonido del corazón para evaluar cavidades y válvulas.", cost: 36000, icon: Heart, color: "from-pink-500 to-rose-500" }
+      ]
+    : activePartner.specialties.map((spec, i) => {
+        const colors = [
+          "from-blue-500 to-indigo-500",
+          "from-teal-500 to-emerald-500",
+          "from-orange-500 to-red-500",
+          "from-pink-500 to-rose-500",
+          "from-purple-500 to-indigo-650",
+          "from-emerald-500 to-cyan-500"
+        ];
+        const icons = [Building2, Activity, TrendingUp, Heart, Stethoscope, Compass];
+        return {
+          id: spec,
+          label: spec,
+          desc: `Servicio completo de ${spec} en nuestras sedes habilitadas.`,
+          cost: 15000 + (i * 3000), // dynamic price calculation
+          icon: icons[i % icons.length] || Building2,
+          color: colors[i % colors.length]
+        };
+      });
 
   // Pre-select consultorio and jump to step 2 if preselected location is passed
   useEffect(() => {
