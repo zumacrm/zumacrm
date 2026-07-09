@@ -79,12 +79,40 @@ export interface GlobalSaaSConfig {
   platinumPrice: number;     // default cost, e.g. 99
 }
 
+export interface MockCoupon {
+  code: string;
+  type: "percentage" | "fixed";
+  value: number;
+  partnerId: string;
+  isActive: boolean;
+  description: string;
+}
+
 const DEFAULT_SAAS_CONFIG: GlobalSaaSConfig = {
   globalCommission: 10,
   bronzePrice: 29,
   goldPrice: 59,
   platinumPrice: 99
 };
+
+const INITIAL_COUPONS: MockCoupon[] = [
+  {
+    code: "PRIMERTURNO",
+    type: "fixed",
+    value: 5000,
+    partnerId: "dr-carlos-jensen",
+    isActive: true,
+    description: "Descuento de bienvenida de $5.000 pesos en tu primera reserva."
+  },
+  {
+    code: "PROMO10",
+    type: "percentage",
+    value: 10,
+    partnerId: "dr-carlos-jensen",
+    isActive: true,
+    description: "Descuento del 10% en cualquier consulta o estudio."
+  }
+];
 
 // Initial Partners list
 const INITIAL_PARTNERS: Partner[] = [
@@ -837,6 +865,26 @@ export const mockDB = {
       return list[idx];
     }
     return null;
+  },
+
+  // Coupons list
+  getCoupons: (): MockCoupon[] => {
+    return getDB("zuma_coupons", INITIAL_COUPONS);
+  },
+
+  saveCoupons: (coupons: MockCoupon[]) => {
+    saveDB("zuma_coupons", coupons);
+  },
+
+  addCoupon: (coupon: MockCoupon) => {
+    const list = mockDB.getCoupons();
+    const idx = list.findIndex(c => c.code.toUpperCase() === coupon.code.toUpperCase() && c.partnerId === coupon.partnerId);
+    if (idx !== -1) {
+      list[idx] = coupon;
+    } else {
+      list.push(coupon);
+    }
+    saveDB("zuma_coupons", list);
   },
 
   runCronCleanup: () => {

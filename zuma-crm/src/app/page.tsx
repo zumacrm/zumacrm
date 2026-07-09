@@ -23,7 +23,8 @@ import {
   Activity,
   Building2,
   Stethoscope,
-  MapPin
+  MapPin,
+  Tag
 } from "lucide-react";
 import InicioView from "@/components/views/InicioView";
 import PerfilPublicoView from "@/components/views/PerfilPublicoView";
@@ -38,6 +39,7 @@ import PacienteUbicacionesView from "@/components/views/PacienteUbicacionesView"
 import SaaSConfigView from "@/components/views/SaaSConfigView";
 import PartnerStatsView from "@/components/views/PartnerStatsView";
 import PartnerReservasAdminView from "@/components/views/PartnerReservasAdminView";
+import PromocionesView from "@/components/views/PromocionesView";
 import { mockDB } from "@/lib/mockData";
 
 type Role = "superadmin" | "partner" | "patient_guest" | "patient_registered";
@@ -224,6 +226,7 @@ export default function Home() {
           { id: "perfil", label: "Profile", icon: UserIcon, desc: "Mi Perfil Público" },
           { id: "estadisticas", label: "Estadísticas", icon: BarChart2, desc: "Rendimiento y Contabilidad" },
           { id: "reservas_admin", label: "Administrar", icon: FileText, desc: "Gestión Completa de Reservas" },
+          { id: "promociones", label: "Promociones", icon: Tag, desc: "Cupones y Ofertas" },
           { id: "config", label: "Settings", icon: SettingsIcon, desc: "Configuración Admin" },
           { id: "facturacion", label: "Subscription", icon: Layers, desc: "Abonos y Facturas" }
         ];
@@ -232,6 +235,7 @@ export default function Home() {
         return [
           { id: "dashboard", label: "Dashboard", icon: HomeIcon, desc: "Directorio de Socios" },
           { id: "ubicaciones", label: "Ubicaciones", icon: MapPin, desc: "Sedes y locales asociados" },
+          { id: "promociones", label: "Promociones", icon: Tag, desc: "Cupones y Ofertas Especiales" },
           { id: "historial", label: "Mis Reservas", icon: FileText, desc: "Gestionar reservas y señas" },
           { id: "paciente_perfil", label: "Profile", icon: UserIcon, desc: "Mi Información Personal" }
         ];
@@ -256,6 +260,8 @@ export default function Home() {
         return <PartnerStatsView partnerId="dr-carlos-jensen" />;
       case "reservas_admin":
         return <PartnerReservasAdminView partnerId="dr-carlos-jensen" />;
+      case "promociones":
+        return <PromocionesView role={role} partnerId={role === "partner" ? "dr-carlos-jensen" : undefined} />;
       case "config":
         return <ConfiguracionView />;
       case "facturacion":

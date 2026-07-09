@@ -61,6 +61,12 @@ export default function ReservarTurnoView({
   });
   
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Coupon states
+  const [couponCodeInput, setCouponCodeInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
  
   // Retrieve active partner details
   const activePartner = mockDB.getPartners().find(p => p.id === partnerId) || 
@@ -251,6 +257,29 @@ export default function ReservarTurnoView({
     return (totalCost * savedVal) / 100;
   };
 
+  const handleApplyCoupon = () => {
+    setCouponError(null);
+    setCouponSuccess(null);
+    if (!couponCodeInput) return;
+
+    const codeUpper = couponCodeInput.trim().toUpperCase();
+    const allCoupons = mockDB.getCoupons();
+    // Find matching active coupon for this partner
+    const match = allCoupons.find(
+      c => c.code.toUpperCase() === codeUpper && 
+           c.partnerId === activePartner.id && 
+           c.isActive
+    );
+
+    if (match) {
+      setAppliedCoupon(match);
+      setCouponSuccess(`¡Cupón "${match.code}" aplicado con éxito!`);
+    } else {
+      setAppliedCoupon(null);
+      setCouponError("El cupón ingresado no existe, está inactivo o no pertenece a este comercio.");
+    }
+  };
+
   // Confirm booking & register patient
   const handleConfirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,7 +289,19 @@ export default function ReservarTurnoView({
     }
 
     const currentSrv = availableServices.find(s => s.id === selectedEstudio);
-    const cost = currentSrv ? currentSrv.cost : 30000;
+    const baseCost = currentSrv ? currentSrv.cost : 30000;
+
+    // Calculate discount
+    let discount = 0;
+    if (appliedCoupon) {
+      if (appliedCoupon.type === "percentage") {
+        discount = (baseCost * appliedCoupon.value) / 100;
+      } else {
+        discount = Math.min(appliedCoupon.value, baseCost);
+      }
+    }
+    const finalCost = baseCost - discount;
+    const finalDeposit = calculateDeposit(finalCost);
 
     // Call registration prop to update parent session
     if (!currentPatient) {
@@ -294,8 +335,8 @@ export default function ReservarTurnoView({
       estado_turno: "PRE_RESERVADO",
       via_reserva: "WEB_PACIENTE",
       pago: {
-        monto_total: cost,
-        monto_pagado: calculateDeposit(cost),
+        monto_total: finalCost,
+        monto_pagado: finalDeposit,
         checkout_id: `pref_${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
         estado_pago: "PENDIENTE" // Seña pendiente de abonar
       }
@@ -312,6 +353,19 @@ export default function ReservarTurnoView({
   const savedValStr = typeof window !== "undefined" ? sessionStorage.getItem("zuma_deposit_value") : "50";
   const savedVal = savedValStr ? parseFloat(savedValStr) : 50;
   const labelSeña = savedType === "fixed" ? `$${savedVal.toLocaleString("es-AR")} ARS` : `${savedVal}%`;
+
+  const currentSrv = availableServices.find(s => s.id === selectedEstudio);
+  const baseCost = currentSrv ? currentSrv.cost : 30000;
+  let discount = 0;
+  if (appliedCoupon) {
+    if (appliedCoupon.type === "percentage") {
+      discount = (baseCost * appliedCoupon.value) / 100;
+    } else {
+      discount = Math.min(appliedCoupon.value, baseCost);
+    }
+  }
+  const finalCost = baseCost - discount;
+  const finalDeposit = calculateDeposit(finalCost);
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6 animate-slide-in">
@@ -661,11 +715,66 @@ export default function ReservarTurnoView({
               )}
             </div>
 
+            {/* Coupon Code Input Container */}
+            <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col gap-2 mt-1">
+              <span className="font-bold text-slate-500 text-[9px] uppercase tracking-wider block">¿Tienes un cupón de descuento?</span>
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="text"
+                  placeholder="Ej: PRIMERTURNO"
+                  value={couponCodeInput}
+                  onChange={(e) => setCouponCodeInput(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-primary font-bold uppercase placeholder:normal-case bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer"
+                >
+                  Aplicar
+                </button>
+              </div>
+              
+              {couponError && (
+                <span className="text-[10px] text-rose-600 font-semibold mt-1 block">
+                  ⚠️ {couponError}
+                </span>
+              )}
+              {couponSuccess && (
+                <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">
+                  🎉 {couponSuccess}
+                </span>
+              )}
+            </div>
+
+            {/* Price breakdown summary */}
+            <div className="p-3.5 bg-slate-50 border border-slate-150 rounded-xl text-xs flex flex-col gap-2">
+              <div className="flex justify-between text-slate-500 font-medium">
+                <span>Costo del Servicio:</span>
+                <span className="font-semibold text-slate-700">${baseCost.toLocaleString("es-AR")}</span>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-emerald-600 font-semibold">
+                  <span>Descuento Aplicado ({appliedCoupon?.code}):</span>
+                  <span>-${discount.toLocaleString("es-AR")}</span>
+                </div>
+              )}
+              <div className="h-px bg-slate-200 my-0.5" />
+              <div className="flex justify-between font-extrabold text-slate-800 text-sm">
+                <span>Total Final:</span>
+                <span>${finalCost.toLocaleString("es-AR")}</span>
+              </div>
+              <div className="flex justify-between font-bold text-indigo-750 text-xs mt-0.5">
+                <span>Monto Seña Requerida ({labelSeña}):</span>
+                <span>${finalDeposit.toLocaleString("es-AR")}</span>
+              </div>
+            </div>
+
             <div className="h-px bg-slate-100 my-1" />
 
             <div className="flex items-start gap-1.5 bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-250/20 text-[10px] text-slate-500">
               <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-              <p>Para confirmar el bloqueo del slot se requiere una seña del {labelSeña}. En el siguiente paso simularás el pago del depósito con Mercado Pago.</p>
+              <p>Para confirmar el bloqueo del slot se requiere una seña del {labelSeña} (${finalDeposit.toLocaleString("es-AR")} ARS). En el siguiente paso simularás el pago del depósito con Mercado Pago.</p>
             </div>
 
             <div className="flex gap-3">
