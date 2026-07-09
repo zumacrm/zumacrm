@@ -88,6 +88,16 @@ export interface MockCoupon {
   description: string;
 }
 
+export interface MockChatMessage {
+  id: string;
+  partnerId: string;
+  patientDni: string;
+  sender: "partner" | "patient";
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+}
+
 const DEFAULT_SAAS_CONFIG: GlobalSaaSConfig = {
   globalCommission: 10,
   bronzePrice: 29,
@@ -111,6 +121,36 @@ const INITIAL_COUPONS: MockCoupon[] = [
     partnerId: "dr-carlos-jensen",
     isActive: true,
     description: "Descuento del 10% en cualquier consulta o estudio."
+  }
+];
+
+const INITIAL_CHAT_MESSAGES: MockChatMessage[] = [
+  {
+    id: "msg1",
+    partnerId: "dr-carlos-jensen",
+    patientDni: "38111222", // Roberto Sosa
+    sender: "patient",
+    message: "Hola Dr. quería consultar si debo llevar los análisis previos para la consulta.",
+    timestamp: subDays(new Date(), 1).toISOString(),
+    isRead: true
+  },
+  {
+    id: "msg2",
+    partnerId: "dr-carlos-jensen",
+    patientDni: "38111222",
+    sender: "partner",
+    message: "Hola Roberto, sí por favor. Trae todo el historial cardiológico que tengas.",
+    timestamp: subDays(new Date(), 1).toISOString(),
+    isRead: true
+  },
+  {
+    id: "msg3",
+    partnerId: "dr-carlos-jensen",
+    patientDni: "38111222",
+    sender: "patient",
+    message: "Excelente, ¡muchas gracias! Nos vemos el jueves.",
+    timestamp: new Date().toISOString(),
+    isRead: false
   }
 ];
 
@@ -885,6 +925,21 @@ export const mockDB = {
       list.push(coupon);
     }
     saveDB("zuma_coupons", list);
+  },
+
+  // Chat messages
+  getMessages: (): MockChatMessage[] => {
+    return getDB("zuma_messages", INITIAL_CHAT_MESSAGES);
+  },
+
+  saveMessages: (messages: MockChatMessage[]) => {
+    saveDB("zuma_messages", messages);
+  },
+
+  addMessage: (msg: MockChatMessage) => {
+    const list = mockDB.getMessages();
+    list.push(msg);
+    saveDB("zuma_messages", list);
   },
 
   runCronCleanup: () => {
