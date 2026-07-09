@@ -79,6 +79,19 @@ export default function Home() {
 
   // Notification states
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
+  const [expandedNotifId, setExpandedNotifId] = useState<string | null>(null);
+
+  const handleNotificationClick = (notifId: string) => {
+    setExpandedNotifId(prev => prev === notifId ? null : notifId);
+    if (role === "superadmin") {
+      setSuperadminNotifications(prev => prev.map(n => n.id === notifId ? { ...n, isRead: true } : n));
+    } else if (role === "partner") {
+      setPartnerNotifications(prev => prev.map(n => n.id === notifId ? { ...n, isRead: true } : n));
+    } else {
+      setPatientNotifications(prev => prev.map(n => n.id === notifId ? { ...n, isRead: true } : n));
+    }
+  };
+
   const [partnerNotifications, setPartnerNotifications] = useState([
     { id: "pn1", title: "Nuevo Turno Agendado", desc: "María Álvarez reservó Consulta general el 16/07/2026.", time: "Hace 2 horas", type: "booking", isRead: false },
     { id: "pn2", title: "Seña Acreditada", desc: "Pago de seña de $15.000 de Martín Díaz recibido por Mercado Pago.", time: "Hace 4 horas", type: "payment", isRead: false },
@@ -697,13 +710,16 @@ export default function Home() {
               ) : (
                 <div className="flex flex-col gap-3 mt-4">
                   {activeNotifications.map((notif) => {
+                    const isExpanded = expandedNotifId === notif.id;
+
                     return (
                       <div 
                         key={notif.id} 
-                        className={`p-3.5 rounded-xl border transition-all text-xs relative flex gap-3
+                        onClick={() => handleNotificationClick(notif.id)}
+                        className={`p-3.5 rounded-xl border transition-all text-xs flex gap-3 cursor-pointer hover:shadow-xs select-none
                           ${notif.isRead 
-                            ? "bg-slate-50 border-slate-150 text-slate-500" 
-                            : "bg-indigo-50/30 border-indigo-150/60 text-slate-750 font-medium"}`}
+                            ? "bg-slate-50 border-slate-150 text-slate-500 hover:border-slate-200" 
+                            : "bg-indigo-50/30 border-indigo-150/60 text-slate-750 font-medium hover:bg-indigo-50/50"}`}
                       >
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0
                           ${notif.type === "booking" ? "bg-blue-50 text-blue-600" :
@@ -714,16 +730,25 @@ export default function Home() {
                            notif.type === "payment" ? <CreditCard className="w-4 h-4" /> :
                            <Tag className="w-4 h-4" />}
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start gap-2">
-                            <span className="font-bold text-slate-850 text-[11px] leading-tight">{notif.title}</span>
+                            <span className="font-bold text-slate-850 text-[11px] leading-tight flex items-center gap-1.5 min-w-0">
+                              {!notif.isRead && <span className="w-1.5 h-1.5 rounded-full bg-indigo-650 shrink-0" />}
+                              <span className="truncate">{notif.title}</span>
+                            </span>
                             <span className="text-[9px] text-slate-400 shrink-0 font-medium">{notif.time}</span>
                           </div>
-                          <p className="text-[10px] text-slate-500 leading-normal mt-1">{notif.desc}</p>
+                          <p className={`text-[10px] text-slate-500 leading-normal mt-1 
+                            ${isExpanded ? "whitespace-normal break-words" : "truncate"}`}
+                          >
+                            {notif.desc}
+                          </p>
+                          {isExpanded && (
+                            <span className="text-[8px] font-bold text-indigo-600 mt-2 block uppercase tracking-wider">
+                              &bull; Hacer clic para contraer
+                            </span>
+                          )}
                         </div>
-                        {!notif.isRead && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 absolute top-3.5 right-3.5 animate-pulse" />
-                        )}
                       </div>
                     );
                   })}
