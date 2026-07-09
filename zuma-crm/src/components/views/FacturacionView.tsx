@@ -288,12 +288,46 @@ export default function FacturacionView({ role = "partner" }: FacturacionViewPro
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Billing details card */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
-          <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
-            <CreditCard className="w-4 h-4 text-primary" />
-            Método de Pago Activo
-          </h2>
+        {/* Subscription status & Billing details cards */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          
+          <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col gap-4 animate-slide-in">
+            <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
+              <Layers className="w-4 h-4 text-primary" />
+              Estado y Vigencia de la Suscripción
+            </h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1.5">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Último Pago</span>
+                <p className="text-sm font-bold text-slate-800">15/06/2026</p>
+                <span className="text-[9px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  Monto: ${myCost} USD
+                </span>
+              </div>
+              
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1.5">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Próximo Vencimiento</span>
+                <p className="text-sm font-bold text-slate-800">15/07/2026</p>
+                <span className="text-[9px] text-indigo-600 font-semibold mt-0.5">Renovación automática</span>
+              </div>
+              
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1.5">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Comisión Contrato SaaS</span>
+                <p className="text-sm font-bold text-slate-800">
+                  {myPartnerProfile?.customCommissionPercentage !== null ? myPartnerProfile?.customCommissionPercentage : globalConfig.globalCommission}%
+                </p>
+                <span className="text-[9px] text-slate-400 mt-0.5">Por seña recibida</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
+            <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
+              <CreditCard className="w-4 h-4 text-primary" />
+              Método de Pago Activo
+            </h2>
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 border border-slate-200 p-4 rounded-xl">
             <div className="flex items-center gap-3">
@@ -314,8 +348,9 @@ export default function FacturacionView({ role = "partner" }: FacturacionViewPro
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Invoice history card */}
+      {/* Invoice history card */}
         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
           <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
             <FileText className="w-4.5 h-4.5 text-primary" />

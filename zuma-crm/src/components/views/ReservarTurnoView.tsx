@@ -237,6 +237,20 @@ export default function ReservarTurnoView({
     setStep(4);
   };
 
+  // Helper to calculate required seña / deposit based on configuration
+  const calculateDeposit = (totalCost: number) => {
+    if (typeof window === "undefined") return totalCost / 2;
+    const savedType = sessionStorage.getItem("zuma_deposit_type");
+    const savedValStr = sessionStorage.getItem("zuma_deposit_value");
+    const savedVal = savedValStr ? parseFloat(savedValStr) : 50;
+
+    if (savedType === "fixed") {
+      return Math.min(savedVal, totalCost);
+    }
+    // Default percentage (e.g. 50%)
+    return (totalCost * savedVal) / 100;
+  };
+
   // Confirm booking & register patient
   const handleConfirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,7 +295,7 @@ export default function ReservarTurnoView({
       via_reserva: "WEB_PACIENTE",
       pago: {
         monto_total: cost,
-        monto_pagado: cost / 2, // 50% seña
+        monto_pagado: calculateDeposit(cost),
         checkout_id: `pref_${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
         estado_pago: "PENDIENTE" // Seña pendiente de abonar
       }
@@ -293,6 +307,11 @@ export default function ReservarTurnoView({
 
   const datesAvailable = getDateOptions();
   const slotsAvailable = getSlots();
+
+  const savedType = typeof window !== "undefined" ? sessionStorage.getItem("zuma_deposit_type") : "percentage";
+  const savedValStr = typeof window !== "undefined" ? sessionStorage.getItem("zuma_deposit_value") : "50";
+  const savedVal = savedValStr ? parseFloat(savedValStr) : 50;
+  const labelSeña = savedType === "fixed" ? `$${savedVal.toLocaleString("es-AR")} ARS` : `${savedVal}%`;
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6 animate-slide-in">
@@ -646,7 +665,7 @@ export default function ReservarTurnoView({
 
             <div className="flex items-start gap-1.5 bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-250/20 text-[10px] text-slate-500">
               <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-              <p>Para confirmar el bloqueo del slot se requiere una seña del 50%. En el siguiente paso simularás el pago del depósito con Mercado Pago.</p>
+              <p>Para confirmar el bloqueo del slot se requiere una seña del {labelSeña}. En el siguiente paso simularás el pago del depósito con Mercado Pago.</p>
             </div>
 
             <div className="flex gap-3">

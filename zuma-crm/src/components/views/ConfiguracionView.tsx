@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Shield, 
   Key, 
@@ -86,14 +86,37 @@ export default function ConfiguracionView() {
     role: "Asistente" as "Propietario" | "Asistente" | "Soporte"
   });
 
+  // Seña configuration states
+  const [depositType, setDepositType] = useState<"percentage" | "fixed">("percentage");
+  const [depositValue, setDepositValue] = useState<number>(50);
+  const [saveDepositSuccess, setSaveDepositSuccess] = useState(false);
+
   // Permissions matrices configurations
   const [selectedRoleForMatrix, setSelectedRoleForMatrix] = useState<"Propietario" | "Asistente" | "Soporte">("Asistente");
   const [rolePermissions, setRolePermissions] = useState(DEFAULT_PERMISSIONS);
+
+  // Load configuration from sessionStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedType = sessionStorage.getItem("zuma_deposit_type");
+      const savedVal = sessionStorage.getItem("zuma_deposit_value");
+      if (savedType) setDepositType(savedType as any);
+      if (savedVal) setDepositValue(parseFloat(savedVal));
+    }
+  }, []);
 
   const handleSaveKeys = (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMsg(true);
     setTimeout(() => setSuccessMsg(false), 2000);
+  };
+
+  const handleSaveDeposit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaveDepositSuccess(true);
+    sessionStorage.setItem("zuma_deposit_type", depositType);
+    sessionStorage.setItem("zuma_deposit_value", depositValue.toString());
+    setTimeout(() => setSaveDepositSuccess(false), 2000);
   };
 
   const handleInviteSubmit = (e: React.FormEvent) => {
@@ -208,6 +231,64 @@ export default function ConfiguracionView() {
             >
               <Save className="w-4 h-4" />
               Guardar Configuración API
+            </button>
+          </form>
+
+          {/* Booking & Deposits Config Form */}
+          <form onSubmit={handleSaveDeposit} className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col gap-4">
+            <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
+              <Shield className="w-4 h-4 text-primary" />
+              Configuración de Cobros y Señas
+            </h2>
+
+            <p className="text-[10px] text-slate-400 leading-normal">
+              Define el monto que deben abonar tus clientes de forma anticipada para congelar el turno y confirmar la reserva.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tipo de Cobro Anticipado</label>
+                <select
+                  value={depositType}
+                  onChange={(e) => setDepositType(e.target.value as any)}
+                  className="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none"
+                >
+                  <option value="percentage">Porcentaje sobre el total (%)</option>
+                  <option value="fixed">Monto Fijo de Reserva ($)</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Valor Requerido</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={depositValue}
+                    onChange={(e) => setDepositValue(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-indigo-500 font-semibold text-slate-750"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-450 font-bold">
+                    {depositType === "percentage" ? "%" : "ARS"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {saveDepositSuccess && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                <span>¡Configuración de señas y depósitos guardada exitosamente!</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="bg-[#0f172a] hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-2"
+            >
+              <Save className="w-4 h-4" />
+              Guardar Configuración de Cobros
             </button>
           </form>
 
