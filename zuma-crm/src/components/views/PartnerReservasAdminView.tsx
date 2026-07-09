@@ -250,6 +250,9 @@ export default function PartnerReservasAdminView({ partnerId = "dr-carlos-jensen
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservas Filtradas ({filteredTurnos.length})</span>
+          <span className="text-[9px] text-slate-400 font-bold md:hidden bg-slate-100 px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
+            👈 Desliza horizontalmente para ver más
+          </span>
         </div>
 
         {filteredTurnos.length === 0 ? (
@@ -259,8 +262,8 @@ export default function PartnerReservasAdminView({ partnerId = "dr-carlos-jensen
             <p className="text-[10px] text-slate-400">Prueba ajustando los parámetros de búsqueda o los filtros superiores.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[850px] text-left border-collapse table-auto">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   <th className="py-3 px-5">Fecha / Hora</th>
