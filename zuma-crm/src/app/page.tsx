@@ -24,7 +24,9 @@ import {
   Building2,
   Stethoscope,
   MapPin,
-  Tag
+  Tag,
+  XCircle,
+  CreditCard
 } from "lucide-react";
 import InicioView from "@/components/views/InicioView";
 import PerfilPublicoView from "@/components/views/PerfilPublicoView";
@@ -74,6 +76,42 @@ export default function Home() {
   const [isUnlocked, setIsUnlocked] = useState(true);
   const [accessCode, setAccessCode] = useState("");
   const [loginError, setLoginError] = useState("");
+
+  // Notification states
+  const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
+  const [partnerNotifications, setPartnerNotifications] = useState([
+    { id: "pn1", title: "Nuevo Turno Agendado", desc: "María Álvarez reservó Consulta general el 16/07/2026.", time: "Hace 2 horas", type: "booking", isRead: false },
+    { id: "pn2", title: "Seña Acreditada", desc: "Pago de seña de $15.000 de Martín Díaz recibido por Mercado Pago.", time: "Hace 4 horas", type: "payment", isRead: false },
+    { id: "pn3", title: "Cupón Utilizado", desc: "El cliente Juan Pérez aplicó el cupón PRIMERTURNO.", time: "Ayer", type: "coupon", isRead: true }
+  ]);
+  const [patientNotifications, setPatientNotifications] = useState([
+    { id: "an1", title: "Reserva Pre-Confirmada", desc: "Tu reserva con el Dr. Carlos Jensen para el 06/07/2026 fue agendada.", time: "Hace 1 hora", type: "booking", isRead: false },
+    { id: "an2", title: "Pago de Seña Acreditado", desc: "Tu pago de seña por $12.500 fue aprobado por Mercado Pago.", time: "Hace 1 hora", type: "payment", isRead: false },
+    { id: "an3", title: "Beneficio Exclusivo", desc: "El Dr. Carlos Jensen activó la promo PRIMERTURNO por $5.000.", time: "Hace 2 días", type: "coupon", isRead: true }
+  ]);
+  const [superadminNotifications, setSuperadminNotifications] = useState([
+    { id: "sn1", title: "Nuevo Socio Registrado", desc: "El socio 'Bar Lugones La Banda' se unió en plan Oro.", time: "Ayer", type: "booking", isRead: false },
+    { id: "sn2", title: "Abono Liquidado", desc: "El Dr. Carlos Jensen abonó su factura del mes de junio.", time: "Hace 15 días", type: "payment", isRead: true }
+  ]);
+
+  const getActiveNotifications = () => {
+    if (role === "superadmin") return superadminNotifications;
+    if (role === "partner") return partnerNotifications;
+    return patientNotifications;
+  };
+
+  const handleMarkAllNotificationsAsRead = () => {
+    if (role === "superadmin") {
+      setSuperadminNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } else if (role === "partner") {
+      setPartnerNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } else {
+      setPatientNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    }
+  };
+
+  const activeNotifications = getActiveNotifications();
+  const unreadCount = activeNotifications.filter(n => !n.isRead).length;
 
   // Patient session state
   const [patientSession, setPatientSession] = useState<PatientSession | null>(null);
@@ -465,17 +503,21 @@ export default function Home() {
           <div className="flex flex-col gap-1 px-1">
             {/* Notification */}
             <button 
-              onClick={() => setActiveTab(role === "superadmin" || role === "partner" ? "facturacion" : "historial")}
+              onClick={() => setShowNotificationDrawer(true)}
               className="group w-full flex items-center gap-2.5 py-1.5 rounded text-slate-400 hover:text-slate-200 text-left relative cursor-pointer"
             >
               <div className="relative">
                 <Bell className="w-4 h-4 text-slate-500 group-hover:text-slate-300 shrink-0" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-500" />
+                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />}
               </div>
               {!sidebarCollapsed && (
                 <div className="flex justify-between items-center flex-1 animate-fade-in text-xs">
-                  <span>Notification</span>
-                  <span className="bg-indigo-600/80 text-white font-bold text-[8px] px-1.5 py-0.5 rounded-full">3</span>
+                  <span>Notificaciones</span>
+                  {unreadCount > 0 && (
+                    <span className="bg-indigo-650/90 text-white font-bold text-[8px] px-1.5 py-0.5 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
                 </div>
               )}
             </button>
@@ -623,6 +665,81 @@ export default function Home() {
             <LogOut className="w-12 h-12 text-rose-500 animate-bounce" />
             <h3 className="font-semibold text-slate-800 text-sm">Bloqueando Acceso...</h3>
             <p className="text-xs text-slate-400 leading-normal">Cerrando la sesión de pruebas y asegurando el portal.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Sliding Notification Overlay Panel */}
+      {showNotificationDrawer && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex justify-end z-50 animate-fade-in">
+          <div className="w-full max-w-sm bg-white h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto animate-slide-in-right">
+            <div>
+              <div className="flex justify-between items-start pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">Notificaciones</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Novedades de tu cuenta en tiempo real</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowNotificationDrawer(false)}
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <XCircle className="w-4.5 h-4.5" />
+                </button>
+              </div>
+
+              {activeNotifications.length === 0 ? (
+                <div className="p-12 text-center flex flex-col items-center gap-2 mt-6">
+                  <Bell className="w-8 h-8 text-slate-350" />
+                  <span className="font-semibold text-slate-700 text-xs">No tienes notificaciones</span>
+                  <p className="text-[10px] text-slate-400">Te avisaremos cuando ocurra algo importante.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 mt-4">
+                  {activeNotifications.map((notif) => {
+                    return (
+                      <div 
+                        key={notif.id} 
+                        className={`p-3.5 rounded-xl border transition-all text-xs relative flex gap-3
+                          ${notif.isRead 
+                            ? "bg-slate-50 border-slate-150 text-slate-500" 
+                            : "bg-indigo-50/30 border-indigo-150/60 text-slate-750 font-medium"}`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                          ${notif.type === "booking" ? "bg-blue-50 text-blue-600" :
+                            notif.type === "payment" ? "bg-emerald-50 text-emerald-600" :
+                            "bg-purple-50 text-purple-600"}`}
+                        >
+                          {notif.type === "booking" ? <Calendar className="w-4 h-4" /> :
+                           notif.type === "payment" ? <CreditCard className="w-4 h-4" /> :
+                           <Tag className="w-4 h-4" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="font-bold text-slate-850 text-[11px] leading-tight">{notif.title}</span>
+                            <span className="text-[9px] text-slate-400 shrink-0 font-medium">{notif.time}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 leading-normal mt-1">{notif.desc}</p>
+                        </div>
+                        {!notif.isRead && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 absolute top-3.5 right-3.5 animate-pulse" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllNotificationsAsRead}
+                className="w-full bg-[#0f172a] hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer text-center mt-6 shadow-md"
+              >
+                Marcar todas como leídas
+              </button>
+            )}
           </div>
         </div>
       )}

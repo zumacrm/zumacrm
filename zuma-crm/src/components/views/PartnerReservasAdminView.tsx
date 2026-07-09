@@ -19,7 +19,9 @@ import {
   AlertCircle,
   Phone,
   Mail,
-  ShieldAlert
+  ShieldAlert,
+  QrCode,
+  CheckCircle2
 } from "lucide-react";
 import { format, parseISO, isToday, isTomorrow, isThisWeek, isThisMonth } from "date-fns";
 
@@ -40,6 +42,15 @@ export default function PartnerReservasAdminView({ partnerId = "dr-carlos-jensen
 
   // Selection for detailed drawer
   const [selectedBooking, setSelectedBooking] = useState<MockTurno | null>(null);
+
+  // QR Scanner simulation states
+  const [showQrScannerModal, setShowQrScannerModal] = useState(false);
+  const [scannedTurnoId, setScannedTurnoId] = useState("");
+  const [scanResult, setScanResult] = useState<{
+    status: "success" | "error" | "warning";
+    message: string;
+    turno?: MockTurno;
+  } | null>(null);
 
   const loadData = () => {
     const p = mockDB.getPartners().find(item => item.id === partnerId);
@@ -79,6 +90,61 @@ export default function PartnerReservasAdminView({ partnerId = "dr-carlos-jensen
   useEffect(() => {
     loadData();
   }, [partnerId]);
+
+  const handleProcessQrScan = (targetId: string) => {
+    setScanResult(null);
+    if (!targetId) return;
+
+    const all = mockDB.getTurnos();
+    const match = all.find(t => t.id === targetId && t.partnerId === partnerId);
+
+    if (!match) {
+      setScanResult({
+        status: "error",
+        message: "No se encontró ninguna reserva activa con este identificador para este comercio."
+      });
+      return;
+    }
+
+    if (match.estado_turno === "ATENDIDO") {
+      setScanResult({
+        status: "warning",
+        message: `El cliente ${match.paciente.nombre} ${match.paciente.apellido} ya registra check-in asistido.`,
+        turno: match
+      });
+    } else if (match.estado_turno === "PRE_RESERVADO") {
+      setScanResult({
+        status: "warning",
+        message: `El cliente ${match.paciente.nombre} ${match.paciente.apellido} tiene la seña pendiente.`,
+        turno: match
+      });
+    } else if (match.estado_turno === "CONFIRMADO") {
+      // Automatic successful check-in
+      const updated = mockDB.updateTurnoStatus(match.id, "ATENDIDO");
+      setScanResult({
+        status: "success",
+        message: `¡Check-in Exitoso! Ingreso registrado para ${match.paciente.nombre} ${match.paciente.apellido}.`,
+        turno: updated || undefined
+      });
+      loadData();
+    } else {
+      setScanResult({
+        status: "error",
+        message: `La reserva se encuentra en estado ${match.estado_turno} y no puede registrar check-in.`,
+        turno: match
+      });
+    }
+  };
+
+  const handleCollectPendingDepositAndCheckin = (turnoId: string) => {
+    const updated = mockDB.updateTurnoStatus(turnoId, "ATENDIDO");
+    setScanResult({
+      status: "success",
+      message: "¡Cobro Manual y Check-in Exitoso! La reserva fue marcada como Atendida.",
+      turno: updated || undefined
+    });
+    loadData();
+  };
 
   // Unique lists for dropdowns
   const uniqueLocations = Array.from(new Set(turnos.map(t => t.consultorio)));
@@ -179,6 +245,19 @@ export default function PartnerReservasAdminView({ partnerId = "dr-carlos-jensen
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-indigo-500/50 text-slate-700 font-semibold shadow-inner"
             />
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setScanResult(null);
+              setScannedTurnoId("");
+              setShowQrScannerModal(true);
+            }}
+            className="bg-[#0f172a] hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <QrCode className="w-4 h-4 text-indigo-400" />
+            Escanear QR de Cliente
+          </button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -531,6 +610,130 @@ export default function PartnerReservasAdminView({ partnerId = "dr-carlos-jensen
           </div>
         </div>
       )}
+
+      {/* Simulation QR Scanner Drawer Modal */}
+      {showQrScannerModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 shadow-2xl border border-slate-150 flex flex-col gap-4 w-full max-w-md relative animate-scale-in">
+            <button
+              type="button"
+              onClick={() => {
+                setShowQrScannerModal(false);
+                setScanResult(null);
+                setScannedTurnoId("");
+              }}
+              className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <XCircle className="w-5 h-5" />
+            </button>
+
+            <div className="text-center flex flex-col items-center gap-1.5 pb-2 border-b border-slate-100">
+              <QrCode className="w-8 h-8 text-indigo-650 animate-pulse" />
+              <h3 className="font-extrabold text-slate-800 text-sm">Simulador de Escáner QR</h3>
+              <p className="text-[10px] text-slate-400">Verifica y valida la asistencia física de tus clientes.</p>
+            </div>
+
+            {/* Simulating camera viewport */}
+            {!scanResult ? (
+              <div className="relative aspect-video w-full rounded-2xl bg-slate-950 flex flex-col items-center justify-center border border-slate-800 shadow-inner overflow-hidden group">
+                {/* Laser scan lines */}
+                <div className="absolute inset-x-0 h-0.5 bg-rose-500 shadow shadow-rose-400 top-0 animate-scan" />
+                <div className="w-28 h-28 border-2 border-dashed border-indigo-500 rounded-2xl flex items-center justify-center opacity-85">
+                  <QrCode className="w-14 h-14 text-indigo-500/80 stroke-[1.2]" />
+                </div>
+                <span className="text-[9px] font-bold text-slate-550 uppercase tracking-widest mt-4">Cámara Activa...</span>
+              </div>
+            ) : (
+              <div className={`p-4 rounded-2xl border text-xs flex flex-col gap-2.5
+                ${scanResult.status === "success" ? "bg-emerald-50/60 border-emerald-250 text-emerald-800" :
+                  scanResult.status === "warning" ? "bg-amber-50/60 border-amber-250 text-amber-800" :
+                  "bg-rose-50/60 border-rose-250 text-rose-800"}`}
+              >
+                <div className="flex items-start gap-2.5">
+                  {scanResult.status === "success" ? <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" /> :
+                   scanResult.status === "warning" ? <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" /> :
+                   <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />}
+                  <div>
+                    <span className="font-extrabold block text-[11px] uppercase tracking-wide">
+                      {scanResult.status === "success" ? "Validación Exitosa" :
+                       scanResult.status === "warning" ? "Atención Requerida" :
+                       "Error de Validación"}
+                    </span>
+                    <p className="mt-0.5 leading-normal font-medium">{scanResult.message}</p>
+                  </div>
+                </div>
+
+                {scanResult.turno && (
+                  <div className="bg-white/80 p-3 rounded-xl border border-slate-200/50 flex flex-col gap-1.5 text-[11px] text-slate-650 mt-1">
+                    <div>Cliente: <span className="font-bold text-slate-800">{scanResult.turno.paciente.nombre} {scanResult.turno.paciente.apellido}</span></div>
+                    <div>Servicio: <span className="font-bold text-slate-800">{scanResult.turno.tipo_estudio}</span></div>
+                    <div>Fecha/Hora: <span className="font-bold text-slate-800">{scanResult.turno.fecha} a las {scanResult.turno.hora_inicio} hs</span></div>
+                    <div>Estado Reserva: <span className="font-bold text-slate-800 uppercase">{scanResult.turno.estado_turno}</span></div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Selector to trigger simulated scans */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Selecciona reserva para simular escaneo</label>
+              
+              <div className="flex gap-2">
+                <select
+                  value={scannedTurnoId}
+                  onChange={(e) => setScannedTurnoId(e.target.value)}
+                  className="flex-1 bg-slate-50 border border-slate-250 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none"
+                >
+                  <option value="">-- Elige un cliente en fila --</option>
+                  {turnos.filter(t => t.estado_turno === "CONFIRMADO" || t.estado_turno === "PRE_RESERVADO").map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.paciente.nombre} {t.paciente.apellido} ({t.id}) - {t.tipo_estudio}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => handleProcessQrScan(scannedTurnoId)}
+                  disabled={!scannedTurnoId}
+                  className="bg-indigo-650 hover:bg-indigo-750 disabled:opacity-55 disabled:cursor-not-allowed text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md transition-all cursor-pointer flex items-center justify-center"
+                >
+                  Escanear
+                </button>
+              </div>
+            </div>
+
+            {/* Special recovery actions for warning/pre-reservado states */}
+            {scanResult && scanResult.status === "warning" && scanResult.turno?.estado_turno === "PRE_RESERVADO" && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (scanResult.turno) {
+                    handleCollectPendingDepositAndCheckin(scanResult.turno.id);
+                  }
+                }}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-colors cursor-pointer text-center"
+              >
+                Cobrar Seña en Recepción y Check-in
+              </button>
+            )}
+
+            {scanResult && (
+              <button
+                type="button"
+                onClick={() => {
+                  setScanResult(null);
+                  setScannedTurnoId("");
+                }}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-650 font-bold py-2 rounded-xl text-xs transition-colors cursor-pointer text-center"
+              >
+                Escanear Otro Código
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
