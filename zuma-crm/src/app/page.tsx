@@ -388,7 +388,7 @@ export default function Home() {
       case "promociones":
         return <PromocionesView role={role} partnerId={role === "partner" ? "dr-carlos-jensen" : undefined} />;
       case "mensajes":
-        return <ChatView role={role} partnerId={role === "partner" ? "dr-carlos-jensen" : undefined} patientDni={role !== "partner" ? (patientSession?.dni || "38111222") : undefined} />;
+        return <ChatView role={role} partnerId={role === "partner" ? "dr-carlos-jensen" : (selectedPartnerId || "dr-carlos-jensen")} patientDni={role !== "partner" ? (patientSession?.dni || "38111222") : undefined} />;
       case "config":
         return <ConfiguracionView />;
       case "facturacion":
