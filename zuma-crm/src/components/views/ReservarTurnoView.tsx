@@ -342,6 +342,33 @@ export default function ReservarTurnoView({
       }
     });
 
+    // Log outgoing notifications (Fase 7 Extra)
+    const currentLogs = localStorage.getItem("zuma_outgoing_notifications_log");
+    const logsList = currentLogs ? JSON.parse(currentLogs) : [];
+    const patientName = `${regForm.nombre} ${regForm.apellido}`;
+    
+    // WhatsApp Outbox
+    logsList.unshift({
+      id: `log_wh_${Date.now()}`,
+      time: new Date().toLocaleTimeString(),
+      channel: "WhatsApp",
+      recipient: regForm.telefono || "+549385000000",
+      message: `¡Hola ${regForm.nombre}! Tu reserva con ${activePartner.name} para ${selectedEstudio} el ${format(selectedDate, "yyyy-MM-dd")} a las ${selectedHora} hs ha sido recibida. Recuerda que para habilitar tu QR debes completar el pago de la seña.`,
+      status: "ENVIADO"
+    });
+
+    // Email Outbox
+    logsList.unshift({
+      id: `log_em_${Date.now()}`,
+      time: new Date().toLocaleTimeString(),
+      channel: "Email",
+      recipient: regForm.email || "paciente@zuma.com",
+      message: `Estimado/a ${patientName}, confirmamos la recepción de tu reserva en ZUMA. Detalle: ${selectedEstudio} con ${activePartner.name} el ${format(selectedDate, "dd/MM/yyyy")} a las ${selectedHora} hs.`,
+      status: "ENTREGADO"
+    });
+
+    localStorage.setItem("zuma_outgoing_notifications_log", JSON.stringify(logsList));
+
     // View reservations history tab
     onViewHistory();
   };

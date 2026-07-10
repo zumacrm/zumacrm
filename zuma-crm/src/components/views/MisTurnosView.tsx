@@ -67,6 +67,32 @@ export default function MisTurnosView({ currentPatient, onGoToBooking }: MisTurn
           all[idx].pago!.monto_pagado = all[idx].pago!.monto_total / 2; // seña paid
         }
         mockDB.saveTurnos(all);
+
+        // Outgoing notifications logs (Fase 7 Extra)
+        const currentLogs = localStorage.getItem("zuma_outgoing_notifications_log");
+        const logsList = currentLogs ? JSON.parse(currentLogs) : [];
+        const t = all[idx];
+        const patientName = `${t.paciente.nombre} ${t.paciente.apellido}`;
+        
+        logsList.unshift({
+          id: `log_mp_wh_${Date.now()}`,
+          time: new Date().toLocaleTimeString(),
+          channel: "WhatsApp",
+          recipient: t.paciente.telefono,
+          message: `¡Hola ${t.paciente.nombre}! Mercado Pago acreditó tu seña de $${t.pago?.monto_pagado?.toLocaleString("es-AR")} ARS. Tu código QR de ingreso ha sido activado: https://zuma-crm.vercel.app/qr/${t.id}`,
+          status: "ENVIADO"
+        });
+
+        logsList.unshift({
+          id: `log_mp_em_${Date.now()}`,
+          time: new Date().toLocaleTimeString(),
+          channel: "Email",
+          recipient: t.paciente.email,
+          message: `Hola ${patientName}, confirmamos la aprobación de tu pago de seña. Tu reserva para el ${t.fecha} a las ${t.hora_inicio || t.hora || "09:00"} hs en ${t.partnerName || "ZUMA"} ya se encuentra CONFIRMADA.`,
+          status: "ENTREGADO"
+        });
+
+        localStorage.setItem("zuma_outgoing_notifications_log", JSON.stringify(logsList));
       }
       setPayingTurnoId(null);
       loadMyTurnos();

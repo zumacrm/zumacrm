@@ -12,7 +12,9 @@ import {
   Save, 
   CheckCircle,
   X,
-  UserPlus
+  UserPlus,
+  Mail,
+  Smartphone
 } from "lucide-react";
 
 interface AdminUser {
@@ -94,6 +96,61 @@ export default function ConfiguracionView() {
   // Permissions matrices configurations
   const [selectedRoleForMatrix, setSelectedRoleForMatrix] = useState<"Propietario" | "Asistente" | "Soporte">("Asistente");
   const [rolePermissions, setRolePermissions] = useState(DEFAULT_PERMISSIONS);
+
+  const [outboxLogs, setOutboxLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("zuma_outgoing_notifications_log");
+      if (saved) {
+        setOutboxLogs(JSON.parse(saved));
+      }
+    }
+  }, []);
+
+  const handleTriggerTomorrowReminders = () => {
+    const list = mockDB.getTurnos();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0]; // "yyyy-MM-dd"
+    const tomorrowTurnos = list.filter(t => t.fecha === tomorrowStr && t.partnerId === "dr-carlos-jensen");
+    
+    if (tomorrowTurnos.length === 0) {
+      alert("No hay turnos agendados para mañana para realizar recordatorios.");
+      return;
+    }
+
+    const currentLogs = localStorage.getItem("zuma_outgoing_notifications_log");
+    const logs = currentLogs ? JSON.parse(currentLogs) : [];
+
+    const newLogs = [...logs];
+    tomorrowTurnos.forEach(t => {
+      const patientName = `${t.paciente.nombre} ${t.paciente.apellido}`;
+      const msgText = `¡Hola ${t.paciente.nombre}! Te recordamos tu turno para mañana ${t.fecha} a las ${t.hora_inicio || t.hora || "09:00"} hs en Consultorio Central Banda.`;
+      
+      newLogs.unshift({
+        id: `log_wh_${Math.random()}`,
+        time: new Date().toLocaleTimeString(),
+        channel: "WhatsApp",
+        recipient: t.paciente.telefono,
+        message: msgText,
+        status: "ENVIADO"
+      });
+
+      newLogs.unshift({
+        id: `log_em_${Math.random()}`,
+        time: new Date().toLocaleTimeString(),
+        channel: "Email",
+        recipient: t.paciente.email,
+        message: `Estimado/a ${patientName}, este es un recordatorio automático para tu consulta de ${t.tipo_estudio} de mañana a las ${t.hora_inicio || t.hora || "09:00"} hs con el Dr. Carlos Jensen.`,
+        status: "ENTREGADO"
+      });
+    });
+
+    localStorage.setItem("zuma_outgoing_notifications_log", JSON.stringify(newLogs));
+    setOutboxLogs(newLogs);
+    alert(`Se despacharon con éxito ${tomorrowTurnos.length * 2} recordatorios para el día de mañana (${tomorrowStr}).`);
+  };
 
   // Load configuration from sessionStorage on mount
   useEffect(() => {
@@ -291,6 +348,59 @@ export default function ConfiguracionView() {
               Guardar Configuración de Cobros
             </button>
           </form>
+
+          {/* Outbox Notifications log terminal (Fase 7 Extra) */}
+          <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col gap-4 animate-slide-in">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 font-sans">
+                <Smartphone className="w-4.5 h-4.5 text-primary" />
+                Motor de Envío de Notificaciones (Email & WhatsApp Outbox)
+              </h2>
+              <span className="text-[9px] font-mono text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">zuma-crm/outbox</span>
+            </div>
+
+            <p className="text-[10px] text-slate-400 leading-normal">
+              El motor despacha automáticamente correos electrónicos y mensajes de WhatsApp en tiempo real al confirmar, cancelar o recordar turnos. Presiona el botón para simular la ejecución de recordatorios automáticos del día de mañana.
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleTriggerTomorrowReminders}
+                className="bg-[#0f172a] hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer flex-1 text-center"
+              >
+                Disparar Recordatorios de Mañana
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem("zuma_outgoing_notifications_log");
+                  setOutboxLogs([]);
+                }}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-3 border border-slate-200 rounded-xl text-xs transition-all cursor-pointer text-center"
+              >
+                Limpiar Outbox
+              </button>
+            </div>
+
+            {/* Outgoing terminal list */}
+            <div className="bg-slate-900 rounded-xl p-3 font-mono text-[9.5px] text-slate-350 leading-relaxed border border-slate-850 h-44 overflow-y-auto">
+              <span className="text-slate-500 block border-b border-slate-800 pb-1.5 mb-1.5">// Outgoing messages queue (ZUMA CRM Daemon)</span>
+              {outboxLogs.length === 0 ? (
+                <span className="text-slate-600 font-sans text-[10px]">Sin envíos pendientes. Registra un nuevo turno o simula recordatorios para ver la cola de despacho.</span>
+              ) : (
+                outboxLogs.map((log, idx) => (
+                  <div key={idx} className="mb-2 border-b border-slate-800 pb-1.5">
+                    <div className="flex justify-between text-[8px] text-slate-550 mb-0.5">
+                      <span>[{log.time}] &bull; {log.channel} &bull; {log.recipient}</span>
+                      <span className="text-emerald-500 font-bold">{log.status}</span>
+                    </div>
+                    <p className="text-slate-300 break-words">{log.message}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
 
           {/* Collaborator Users List */}
           <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col gap-4">
