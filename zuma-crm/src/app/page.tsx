@@ -27,7 +27,8 @@ import {
   Tag,
   XCircle,
   CreditCard,
-  MessageSquare
+  MessageSquare,
+  ShieldAlert
 } from "lucide-react";
 import InicioView from "@/components/views/InicioView";
 import PerfilPublicoView from "@/components/views/PerfilPublicoView";
@@ -79,6 +80,37 @@ export default function Home() {
   const [accessCode, setAccessCode] = useState("");
   const [loginError, setLoginError] = useState("");
 
+  // Google Sign-In simulated states
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+
+  const handleGoogleSignInClick = () => {
+    setShowGoogleModal(true);
+  };
+
+  const handleSelectGoogleAccount = (type: "superadmin" | "partner" | "patient") => {
+    setShowGoogleModal(false);
+    setIsUnlocked(true);
+    if (type === "superadmin") {
+      setRole("superadmin");
+      setActiveTab("inicio");
+    } else if (type === "partner") {
+      setRole("partner");
+      setActiveTab("agenda");
+    } else {
+      setRole("patient_registered");
+      setPatientSession({
+        dni: "38111222",
+        nombre: "Juan",
+        apellido: "Pérez",
+        telefono: "+549385555666",
+        email: "juan.perez@gmail.com",
+        obraSocial: "OSDE",
+        avatarKey: "avatar_glasses"
+      });
+      setActiveTab("dashboard");
+    }
+  };
+
   // Notification states
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
   const [expandedNotifId, setExpandedNotifId] = useState<string | null>(null);
@@ -94,20 +126,58 @@ export default function Home() {
     }
   };
 
-  const [partnerNotifications, setPartnerNotifications] = useState([
-    { id: "pn1", title: "Nuevo Turno Agendado", desc: "María Álvarez reservó Consulta general el 16/07/2026.", time: "Hace 2 horas", type: "booking", isRead: false },
-    { id: "pn2", title: "Seña Acreditada", desc: "Pago de seña de $15.000 de Martín Díaz recibido por Mercado Pago.", time: "Hace 4 horas", type: "payment", isRead: false },
-    { id: "pn3", title: "Cupón Utilizado", desc: "El cliente Juan Pérez aplicó el cupón PRIMERTURNO.", time: "Ayer", type: "coupon", isRead: true }
-  ]);
-  const [patientNotifications, setPatientNotifications] = useState([
-    { id: "an1", title: "Reserva Pre-Confirmada", desc: "Tu reserva con el Dr. Carlos Jensen para el 06/07/2026 fue agendada.", time: "Hace 1 hora", type: "booking", isRead: false },
-    { id: "an2", title: "Pago de Seña Acreditado", desc: "Tu pago de seña por $12.500 fue aprobado por Mercado Pago.", time: "Hace 1 hora", type: "payment", isRead: false },
-    { id: "an3", title: "Beneficio Exclusivo", desc: "El Dr. Carlos Jensen activó la promo PRIMERTURNO por $5.000.", time: "Hace 2 días", type: "coupon", isRead: true }
-  ]);
-  const [superadminNotifications, setSuperadminNotifications] = useState([
-    { id: "sn1", title: "Nuevo Socio Registrado", desc: "El socio 'Bar Lugones La Banda' se unió en plan Oro.", time: "Ayer", type: "booking", isRead: false },
-    { id: "sn2", title: "Abono Liquidado", desc: "El Dr. Carlos Jensen abonó su factura del mes de junio.", time: "Hace 15 días", type: "payment", isRead: true }
-  ]);
+  const [partnerNotifications, setPartnerNotifications] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("zuma_partner_notifications");
+      if (saved) return JSON.parse(saved);
+    }
+    return [
+      { id: "pn1", title: "Nuevo Turno Agendado", desc: "María Álvarez reservó Consulta general el 16/07/2026.", time: "Hace 2 horas", type: "booking", isRead: false },
+      { id: "pn2", title: "Seña Acreditada", desc: "Pago de seña de $15.000 de Martín Díaz recibido por Mercado Pago.", time: "Hace 4 horas", type: "payment", isRead: false },
+      { id: "pn3", title: "Cupón Utilizado", desc: "El cliente Juan Pérez aplicó el cupón PRIMERTURNO.", time: "Ayer", type: "coupon", isRead: true }
+    ];
+  });
+
+  const [patientNotifications, setPatientNotifications] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("zuma_patient_notifications");
+      if (saved) return JSON.parse(saved);
+    }
+    return [
+      { id: "an1", title: "Reserva Pre-Confirmada", desc: "Tu reserva con el Dr. Carlos Jensen para el 06/07/2026 fue agendada.", time: "Hace 1 hora", type: "booking", isRead: false },
+      { id: "an2", title: "Pago de Seña Acreditado", desc: "Tu pago de seña por $12.500 fue aprobado por Mercado Pago.", time: "Hace 1 hora", type: "payment", isRead: false },
+      { id: "an3", title: "Beneficio Exclusivo", desc: "El Dr. Carlos Jensen activó la promo PRIMERTURNO por $5.000.", time: "Hace 2 días", type: "coupon", isRead: true }
+    ];
+  });
+
+  const [superadminNotifications, setSuperadminNotifications] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("zuma_superadmin_notifications");
+      if (saved) return JSON.parse(saved);
+    }
+    return [
+      { id: "sn1", title: "Nuevo Socio Registrado", desc: "El socio 'Bar Lugones La Banda' se unió en plan Oro.", time: "Ayer", type: "booking", isRead: false },
+      { id: "sn2", title: "Abono Liquidado", desc: "El Dr. Carlos Jensen abonó su factura del mes de junio.", time: "Hace 15 días", type: "payment", isRead: true }
+    ];
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("zuma_partner_notifications", JSON.stringify(partnerNotifications));
+    }
+  }, [partnerNotifications]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("zuma_patient_notifications", JSON.stringify(patientNotifications));
+    }
+  }, [patientNotifications]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("zuma_superadmin_notifications", JSON.stringify(superadminNotifications));
+    }
+  }, [superadminNotifications]);
 
   const getActiveNotifications = () => {
     if (role === "superadmin") return superadminNotifications;
@@ -411,6 +481,26 @@ export default function Home() {
             >
               Desbloquear
             </button>
+
+            <div className="flex items-center my-0.5">
+              <div className="h-px bg-[#27272a]/45 flex-1" />
+              <span className="text-[9px] text-slate-500 px-2 font-bold uppercase tracking-wider">o</span>
+              <div className="h-px bg-[#27272a]/45 flex-1" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignInClick}
+              className="w-full bg-white hover:bg-slate-50 text-slate-700 font-bold py-2.5 rounded-xl text-xs shadow-md border border-slate-200 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <svg className="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Continuar con Google
+            </button>
           </form>
 
           <div className="h-px bg-[#18181b]" />
@@ -420,6 +510,78 @@ export default function Home() {
             <p>&bull; Médico: ingresar <code className="text-slate-400 font-mono">jensen</code></p>
             <p>&bull; Cliente: ingresar <code className="text-slate-400 font-mono">paciente</code></p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  const partnersList = mockDB.getPartners();
+  const currentJensenObj = partnersList.find(p => p.id === "dr-carlos-jensen");
+  const isSuspended = role === "partner" && currentJensenObj?.status === "suspended";
+
+  // RENDER SUSPENDED MIDDLEWARE LOCK (FASE 7)
+  if (isSuspended) {
+    return (
+      <div className="fixed inset-0 w-screen h-screen bg-slate-950 flex items-center justify-center p-4 z-50 select-none font-sans">
+        <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full bg-rose-650/10 blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-amber-650/10 blur-3xl" />
+
+        <div className="w-full max-w-md bg-[#131316] border border-[#27272a]/80 p-8 rounded-3xl shadow-2xl relative z-10 flex flex-col gap-5 text-center animate-scale-in">
+          <div className="mx-auto w-12 h-12 rounded-xl bg-rose-900/30 text-rose-500 border border-rose-500/20 flex items-center justify-center font-bold shadow-md shadow-rose-900/20 animate-bounce">
+            <ShieldAlert className="w-6 h-6 stroke-[2]" />
+          </div>
+
+          <div>
+            <h1 className="font-display font-extrabold text-white text-lg tracking-tight">Acceso Suspendido &bull; ZUMA CRM</h1>
+            <p className="text-xs text-rose-450 mt-1 font-semibold leading-normal">
+              Cuenta Bloqueada por Deuda Impaga de Abono SaaS
+            </p>
+          </div>
+
+          <div className="bg-[#18181c] border border-[#27272a]/40 p-4 rounded-2xl text-left text-xs leading-relaxed text-slate-400 flex flex-col gap-2.5">
+            <p>
+              El cobro mensual de tu suscripción Oro y el saldo de comisiones acumulado de tus señas online no pudo ser procesado el **día 10**.
+            </p>
+            <div className="h-px bg-[#27272a]/30 my-0.5" />
+            <div className="flex justify-between font-bold text-white text-xs">
+              <span>Abono Plan Oro:</span>
+              <span>$59.00 USD</span>
+            </div>
+            <div className="flex justify-between font-bold text-white text-xs">
+              <span>Comisiones Pendientes:</span>
+              <span>$2.500 ARS</span>
+            </div>
+            <div className="h-px bg-[#27272a]/30 my-0.5" />
+            <p className="text-[10px] text-amber-500/80">
+              Para desbloquear tu agenda de turnos y restablecer el portal público de reserva para tus clientes, regulariza el pago.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const list = mockDB.getPartners();
+              const idx = list.findIndex(p => p.id === "dr-carlos-jensen");
+              if (idx !== -1) {
+                list[idx].status = "active";
+                mockDB.savePartners(list);
+              }
+              const newMsg = {
+                id: `pn_pay_${Date.now()}`,
+                title: "Pago de Suscripción Aprobado",
+                desc: "Agradecemos tu pago. El acceso a tu panel e integraciones ha sido reactivado.",
+                time: "Ahora mismo",
+                type: "payment" as const,
+                isRead: false
+              };
+              setPartnerNotifications(prev => [newMsg, ...prev]);
+              alert("Simulación: Pago acreditado con éxito. Desbloqueando panel...");
+              window.location.reload();
+            }}
+            className="w-full bg-indigo-650 hover:bg-indigo-550 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-md transition-all cursor-pointer text-center"
+          >
+            Abonar Factura Vencida con Mercado Pago
+          </button>
         </div>
       </div>
     );
@@ -771,6 +933,76 @@ export default function Home() {
                 Marcar todas como leídas
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Simulated Google Accounts Selector Modal */}
+      {showGoogleModal && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-[60] animate-fade-in font-sans">
+          <div className="w-full max-w-sm bg-[#131316] border border-[#27272a]/60 rounded-3xl p-6 shadow-2xl relative z-10 flex flex-col gap-4 text-center animate-scale-in">
+            <button
+              type="button"
+              onClick={() => setShowGoogleModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-[#1a1a1c] text-slate-500 hover:text-slate-300 cursor-pointer"
+            >
+              <XCircle className="w-5 h-5" />
+            </button>
+
+            <div className="text-center flex flex-col items-center gap-2 pb-3 border-b border-[#27272a]/45">
+              <svg className="w-8 h-8 shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              <h3 className="font-extrabold text-white text-sm">Iniciar sesión con Google</h3>
+              <p className="text-[10px] text-slate-500">Selecciona una de las cuentas simuladas para ingresar a ZUMA.</p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => handleSelectGoogleAccount("partner")}
+                className="w-full p-3 bg-[#18181c] hover:bg-[#1f1f24] rounded-2xl border border-[#27272a]/70 flex items-center gap-3 transition-colors text-left cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-xl bg-teal-500 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  CJ
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-xs text-slate-200 block truncate">Dr. Carlos Jensen (Socio)</span>
+                  <span className="text-[9.5px] text-slate-500 font-mono block truncate">carlos.jensen@consultorio.com</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectGoogleAccount("patient")}
+                className="w-full p-3 bg-[#18181c] hover:bg-[#1f1f24] rounded-2xl border border-[#27272a]/70 flex items-center gap-3 transition-colors text-left cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  JP
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-xs text-slate-200 block truncate">Juan Pérez (Cliente)</span>
+                  <span className="text-[9.5px] text-slate-500 font-mono block truncate">juan.perez@gmail.com</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectGoogleAccount("superadmin")}
+                className="w-full p-3 bg-[#18181c] hover:bg-[#1f1f24] rounded-2xl border border-[#27272a]/70 flex items-center gap-3 transition-colors text-left cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-xl bg-slate-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  SA
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-xs text-slate-200 block truncate">ZUMA SuperAdmin</span>
+                  <span className="text-[9.5px] text-slate-500 font-mono block truncate">superadmin@zuma.com</span>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       )}

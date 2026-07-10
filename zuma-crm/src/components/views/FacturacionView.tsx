@@ -12,7 +12,8 @@ import {
   Percent,
   Layers,
   Users,
-  Info
+  Info,
+  Sparkles
 } from "lucide-react";
 
 interface FacturacionViewProps {
@@ -28,6 +29,8 @@ export default function FacturacionView({ role = "partner" }: FacturacionViewPro
   });
   const [partners, setPartners] = useState<Partner[]>([]);
   const [turnos, setTurnos] = useState<MockTurno[]>([]);
+  const [selectedWebhookEvent, setSelectedWebhookEvent] = useState("mp_deposit_received");
+  const [webhookLogs, setWebhookLogs] = useState<{ time: string; type: "info" | "success" | "error"; msg: string }[]>([]);
 
   useEffect(() => {
     setGlobalConfig(mockDB.getSaaSConfig());
@@ -71,6 +74,113 @@ export default function FacturacionView({ role = "partner" }: FacturacionViewPro
   const myPlan = myPartnerProfile?.subscriptionPlan || "gold";
   const myCost = myPartnerProfile ? getPartnerPlanCost(myPartnerProfile) : globalConfig.goldPrice;
   const isCustomPrice = myPartnerProfile?.customMonthlyFee !== null;
+
+  const commRate = myPartnerProfile?.customCommissionPercentage !== null 
+    ? myPartnerProfile.customCommissionPercentage 
+    : globalConfig.globalCommission;
+
+  const accumulatedCommissions = turnos
+    .filter(t => t.partnerId === "dr-carlos-jensen" && (t.estado_turno === "CONFIRMADO" || t.estado_turno === "ATENDIDO"))
+    .reduce((sum, t) => {
+      const paidSeña = t.pago?.monto_pagado || 0;
+      return sum + (paidSeña * commRate) / 100;
+    }, 0);
+
+  const handleTriggerWebhook = () => {
+    const timeStr = new Date().toLocaleTimeString();
+    
+    setWebhookLogs(prev => [
+      ...prev,
+      { time: timeStr, type: "info", msg: `POST /api/webhooks/${selectedWebhookEvent === "mp_deposit_received" ? "mercadopago" : "stripe"} - Payload JSON` }
+    ]);
+
+    setTimeout(() => {
+      if (selectedWebhookEvent === "mp_deposit_received") {
+        const allTurnos = mockDB.getTurnos();
+        const pendingTurnoIdx = allTurnos.findIndex(t => t.partnerId === "dr-carlos-jensen" && t.estado_turno === "PRE_RESERVADO");
+        
+        let clientName = "Martín Díaz";
+        if (pendingTurnoIdx !== -1) {
+          allTurnos[pendingTurnoIdx].estado_turno = "CONFIRMADO";
+          if (allTurnos[pendingTurnoIdx].pago) {
+            allTurnos[pendingTurnoIdx].pago!.estado_pago = "APROBADO";
+            allTurnos[pendingTurnoIdx].pago!.monto_pagado = allTurnos[pendingTurnoIdx].pago!.seña_requerida;
+          }
+          clientName = `${allTurnos[pendingTurnoIdx].paciente.nombre} ${allTurnos[pendingTurnoIdx].paciente.apellido}`;
+          mockDB.saveTurnos(allTurnos);
+        } else {
+          const newTurno = {
+            id: `t_web_${Math.random().toString(36).substring(2, 6)}`,
+            partnerId: "dr-carlos-jensen",
+            partnerName: "Dr. Carlos Jensen",
+            paciente: {
+              dni: "38999000",
+              nombre: "Clara",
+              apellido: "Bustos",
+              telefono: "+549385001122",
+              email: "clara.bustos@gmail.com",
+              obra_social: "OSDE"
+            },
+            fecha: "2026-07-16",
+            hora: "10:30",
+            especialidad: "Cardiología",
+            modalidad: "presencial" as const,
+            estado_turno: "CONFIRMADO" as const,
+            pago: {
+              monto_total: 30000,
+              seña_requerida: 15000,
+              estado_pago: "APROBADO" as const,
+              metodo_pago: "Mercado Pago" as const,
+              monto_pagado: 15000
+            }
+          };
+          allTurnos.push(newTurno);
+          clientName = "Clara Bustos";
+          mockDB.saveTurnos(allTurnos);
+        }
+
+        const savedNotifs = localStorage.getItem("zuma_partner_notifications");
+        const list = savedNotifs ? JSON.parse(savedNotifs) : [];
+        const newN = {
+          id: `n_mp_${Date.now()}`,
+          title: "Seña Recibida (Webhook)",
+          desc: `Mercado Pago aprobó el depósito de seña de ${clientName}. Comisión ZUMA calculada.`,
+          time: "Hace 1 min",
+          type: "payment",
+          isRead: false
+        };
+        localStorage.setItem("zuma_partner_notifications", JSON.stringify([newN, ...list]));
+
+        setWebhookLogs(prev => [
+          ...prev,
+          { time: timeStr, type: "success", msg: "Webhook 200 OK. Pago de seña verificado. Comisión registrada." }
+        ]);
+
+        alert(`Simulado: Webhook Mercado Pago procesado. Se incrementó la comisión por seña de ${clientName}.`);
+        window.location.reload();
+      } else {
+        const savedNotifs = localStorage.getItem("zuma_partner_notifications");
+        const list = savedNotifs ? JSON.parse(savedNotifs) : [];
+        const newN = {
+          id: `n_stripe_${Date.now()}`,
+          title: "Suscripción Renovada (Webhook)",
+          desc: `Stripe acreditó el cobro mensual de tu abono de plan ZUMA CRM por $${myCost} USD.`,
+          time: "Hace 1 min",
+          type: "payment",
+          isRead: false
+        };
+        localStorage.setItem("zuma_partner_notifications", JSON.stringify([newN, ...list]));
+
+        setWebhookLogs(prev => [
+          ...prev,
+          { time: timeStr, type: "success", msg: "Webhook 200 OK. Suscripción Stripe liquidada. Próximo vencimiento extendido por 30 días." }
+        ]);
+
+        alert("Simulado: Webhook Stripe procesado. ¡Suscripción mensual de abono actualizada!");
+        window.location.reload();
+      }
+    }, 800);
+  };
 
   const plans = [
     {
@@ -297,8 +407,8 @@ export default function FacturacionView({ role = "partner" }: FacturacionViewPro
               Estado y Vigencia de la Suscripción
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1.5 animate-slide-in">
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Último Pago</span>
                 <p className="text-sm font-bold text-slate-800">15/06/2026</p>
                 <span className="text-[9px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
@@ -307,18 +417,24 @@ export default function FacturacionView({ role = "partner" }: FacturacionViewPro
                 </span>
               </div>
               
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1.5">
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1.5 animate-slide-in">
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Próximo Vencimiento</span>
                 <p className="text-sm font-bold text-slate-800">15/07/2026</p>
                 <span className="text-[9px] text-indigo-600 font-semibold mt-0.5">Renovación automática</span>
               </div>
               
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1.5">
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1.5 animate-slide-in">
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Comisión Contrato SaaS</span>
                 <p className="text-sm font-bold text-slate-800">
                   {myPartnerProfile?.customCommissionPercentage !== null ? myPartnerProfile?.customCommissionPercentage : globalConfig.globalCommission}%
                 </p>
                 <span className="text-[9px] text-slate-400 mt-0.5">Por seña recibida</span>
+              </div>
+
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1.5 animate-slide-in">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Comisiones Acumuladas</span>
+                <p className="text-sm font-bold text-slate-850">${accumulatedCommissions.toLocaleString("es-AR")} ARS</p>
+                <span className="text-[9.5px] text-amber-600 font-extrabold block mt-0.5 uppercase tracking-wider font-mono">saldoPendiente</span>
               </div>
             </div>
           </div>
@@ -345,6 +461,112 @@ export default function FacturacionView({ role = "partner" }: FacturacionViewPro
               onClick={() => alert("Simulación: cambiar tarjeta.")}
             >
               Cambiar Tarjeta
+            </button>
+          </div>
+        </div>
+
+        {/* Cron Billing Job Simulator Widget (Fase 7) */}
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
+          <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
+            <Sparkles className="w-4.5 h-4.5 text-indigo-650 animate-pulse" />
+            Simulador de Ciclo de Facturación y Crons (Fase 7)
+          </h2>
+          <p className="text-[10px] text-slate-400 leading-normal">
+            ZUMA CRM factura el **Día 1**, envía alertas de pago los **Días 5 y 8**, y restringe el acceso al panel el **Día 10** en caso de falta de pago. Ejecuta las etapas secuencialmente para validar la suspensión.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-1">
+            <button
+              type="button"
+              onClick={() => {
+                const saved = localStorage.getItem("zuma_partner_notifications");
+                const currentList = saved ? JSON.parse(saved) : [];
+                const newN = {
+                  id: `n_cron1_${Date.now()}`,
+                  title: "Nueva Factura Disponible",
+                  desc: `Se ha generado tu factura de abono mensual Oro de $${myCost} USD más comisiones acumuladas. Vence el día 10.`,
+                  time: "Hace 1 min",
+                  type: "payment",
+                  isRead: false
+                };
+                localStorage.setItem("zuma_partner_notifications", JSON.stringify([newN, ...currentList]));
+                alert("Simulado Día 1: Factura emitida. Se ha enviado una notificación de abono de suscripción.");
+                window.location.reload();
+              }}
+              className="py-2.5 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-[10px] font-bold cursor-pointer transition-colors text-center"
+            >
+              Día 1: Emitir Factura
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const saved = localStorage.getItem("zuma_partner_notifications");
+                const currentList = saved ? JSON.parse(saved) : [];
+                const newN = {
+                  id: `n_cron5_${Date.now()}`,
+                  title: "Recordatorio de Pago",
+                  desc: "Tu abono de suscripción ZUMA vence en 5 días. Evita cortes de servicio regularizando tu cuenta.",
+                  time: "Hace 1 min",
+                  type: "payment",
+                  isRead: false
+                };
+                localStorage.setItem("zuma_partner_notifications", JSON.stringify([newN, ...currentList]));
+                alert("Simulado Día 5: Primera alerta de cobro despachada.");
+                window.location.reload();
+              }}
+              className="py-2.5 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-[10px] font-bold cursor-pointer transition-colors text-center"
+            >
+              Día 5: Alerta Pago
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const saved = localStorage.getItem("zuma_partner_notifications");
+                const currentList = saved ? JSON.parse(saved) : [];
+                const newN = {
+                  id: `n_cron8_${Date.now()}`,
+                  title: "⚠️ ALERTA CRÍTICA",
+                  desc: "Tu cuenta ZUMA CRM presenta un saldo impago. El acceso será suspendido automáticamente el día 10.",
+                  time: "Hace 1 min",
+                  type: "payment",
+                  isRead: false
+                };
+                localStorage.setItem("zuma_partner_notifications", JSON.stringify([newN, ...currentList]));
+                alert("Simulado Día 8: Alerta crítica despachada.");
+                window.location.reload();
+              }}
+              className="py-2.5 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 rounded-xl text-[10px] font-bold cursor-pointer transition-colors text-center"
+            >
+              Día 8: Alerta Crítica
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const list = mockDB.getPartners();
+                const idx = list.findIndex(p => p.id === "dr-carlos-jensen");
+                if (idx !== -1) {
+                  list[idx].status = "suspended";
+                  mockDB.savePartners(list);
+                }
+                const saved = localStorage.getItem("zuma_partner_notifications");
+                const currentList = saved ? JSON.parse(saved) : [];
+                const newN = {
+                  id: `n_cron10_${Date.now()}`,
+                  title: "Cuenta Suspendida",
+                  desc: "Tu acceso al panel de control ha sido restringido temporalmente debido a falta de pago de abono.",
+                  time: "Hace 1 min",
+                  type: "payment",
+                  isRead: false
+                };
+                localStorage.setItem("zuma_partner_notifications", JSON.stringify([newN, ...currentList]));
+                alert("Simulado Día 10: Suspensión de cuenta. El middleware bloqueará la pantalla de inmediato.");
+                window.location.reload();
+              }}
+              className="py-2.5 px-3 bg-rose-50 hover:bg-rose-100 border border-rose-250 text-rose-800 rounded-xl text-[10px] font-bold cursor-pointer transition-colors text-center"
+            >
+              Día 10: Suspender
             </button>
           </div>
         </div>
@@ -376,6 +598,63 @@ export default function FacturacionView({ role = "partner" }: FacturacionViewPro
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Webhooks Simulator Console (Fase 7) */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm text-slate-200 flex flex-col gap-4">
+          <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 font-sans">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Consola de Webhooks & Pasarelas (Mercado Pago / Stripe)
+            </h2>
+            <span className="text-[9px] font-mono text-slate-500">zuma-crm/webhooks</span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-bold text-slate-400">Seleccionar Evento de Pasarela:</label>
+            <select
+              value={selectedWebhookEvent}
+              onChange={(e) => setSelectedWebhookEvent(e.target.value)}
+              className="bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs focus:outline-none text-slate-350 cursor-pointer font-sans"
+            >
+              <option value="mp_deposit_received">Mercado Pago: payment.approved (Seña de Reserva de $15.000 ARS)</option>
+              <option value="stripe_saas_paid">Stripe: invoice.payment_succeeded (Abono SaaS Oro de $59 USD)</option>
+            </select>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleTriggerWebhook}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer flex-1 text-center"
+            >
+              Enviar Webhook (POST)
+            </button>
+            <button
+              type="button"
+              onClick={() => setWebhookLogs([])}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-350 font-bold py-2 px-3 rounded-xl text-xs transition-all cursor-pointer text-center"
+            >
+              Limpiar Logs
+            </button>
+          </div>
+
+          {/* Raw Terminal Console logs */}
+          <div className="bg-slate-950 rounded-xl p-3 font-mono text-[9.5px] text-slate-300 leading-relaxed border border-slate-850 h-32 overflow-y-auto">
+            <span className="text-slate-500 block border-b border-slate-900 pb-1.5 mb-1.5">// Consola de salida de red ZUMA CRM</span>
+            {webhookLogs.length === 0 ? (
+              <span className="text-slate-600 font-sans text-[10px]">Esperando disparo de webhooks...</span>
+            ) : (
+              webhookLogs.map((log, idx) => (
+                <div key={idx} className="mb-1 text-left">
+                  <span className="text-slate-500">[{log.time}]</span>{" "}
+                  <span className={log.type === "error" ? "text-rose-500 font-semibold" : log.type === "success" ? "text-emerald-400 font-semibold" : "text-slate-300"}>
+                    {log.msg}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
