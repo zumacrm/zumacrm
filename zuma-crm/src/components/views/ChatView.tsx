@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { mockDB, MockChatMessage, Partner, MockTurno } from "@/lib/mockData";
+import { format } from "date-fns";
 import { 
   MessageSquare, 
   Send, 
